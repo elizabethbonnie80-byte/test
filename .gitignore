@@ -1,0 +1,32 @@
+# v0 sandbox internal files
+__v0_runtime_loader.js
+__v0_devtools.tsx
+__v0_jsx-dev-runtime.ts
+.snowflake/
+.v0-trash/
+.vercel/
+
+# Environment variables
+.env*.local
+
+# Common ignores
+node_modules
+.next/
+.DS_Store
+
+# Build artifacts / generated
+tsconfig.tsbuildinfo
+next-env.d.ts
+
+# Supabase CLI local temp
+supabase/.temp/
+
+# Local dev tooling config (not part of the app)
+.mcp.json
+
+# Edge function secrets (REAL API keys — Anthropic / Resend — never commit)
+supabase/.env
+supabase/functions/.env
+
+# Cloud seed/deploy env (holds the hosted service-role key — never commit)
+.env.cloud

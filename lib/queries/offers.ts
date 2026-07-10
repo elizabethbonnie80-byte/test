@@ -1,0 +1,464 @@
+import type { SupabaseClient } from "@supabase/supabase-js"
+import type { Database } from "@/lib/database.types"
+import { PROVINCE_CODE, PRODUCT_TERM_YEARS, type LenderDealListItem } from "@/lib/queries/deals"
+
+type DB = SupabaseClient<Database>
+type Enums = Database["public"]["Enums"]
+
+// ── Lender: make an offer ──────────────────────────────────────────────────────
+
+export type MakeOfferInput = {
+  dealId: string
+  mortgageProduct: Enums["mortgage_product"]
+  rate: number
+  rateLockDays: number
+  commissionBps: number
+  commitmentTurnTimeDays?: number | null
+  docReviewTurnTimeDays?: number | null
+  comments?: string | null
+}
+
+/** Submit an offer (atomic RPC: insert + flip deal to offer_received + notify broker). */
+export async function makeOffer(supabase: DB, input: MakeOfferInput) {
+  const { data, error } = await supabase.rpc("make_offer", {
+    p_deal_id: input.dealId,
+    p_mortgage_product: input.mortgageProduct,
+    p_rate: input.rate,
+    p_rate_lock_days: input.rateLockDays,
+    p_commission_bps: input.commissionBps,
+    p_commitment_turn_time_days: input.commitmentTurnTimeDays ?? undefined,
+    p_doc_review_turn_time_days: input.docReviewTurnTimeDays ?? undefined,
+    p_comments: input.comments ?? undefined,
+  })
+  if (error) throw new Error(error.message)
+  return data
+}
+
+// ── Broker: deal detail + offers ───────────────────────────────────────────────
+
+export type DealOffer = {
+  id: string
+  offerNumber: number
+  status: Enums["offer_status"]
+  mortgageProduct: Enums["mortgage_product"]
+  rate: number
+  rateLockDays: number
+  commissionBps: number
+  commitmentTurnTimeDays: number | null
+  docReviewTurnTimeDays: number | null
+  comments: string | null
+  createdAt: string
+}
+
+export type BrokerDealDetail = {
+  id: string
+  dealNumber: string
+  status: Enums["deal_status"]
+  clientName: string
+  propertyAddress: string | null
+  city: string | null
+  province: Enums["province"] | null
+  loanAmount: number
+  ltv: number | null
+  mortgageProduct: Enums["mortgage_product"] | null
+  amortizationYears: number | null
+  closingDate: string | null
+  acceptedOfferId: string | null
+  lenderConfirmed: boolean
+}
+
+/** The broker's own deal with the borrower identity (RLS lets the owner read deal_identities). */
+export async function getBrokerDealDetail(supabase: DB, dealId: string): Promise<BrokerDealDetail | null> {
+  const { data, error } = await supabase
+    .from("deals")
+    .select(
+      "id, deal_number, status, city, province, loan_amount, ltv, mortgage_product, amortization_years, closing_date, accepted_offer_id, lender_confirmed, deal_identities(borrower_first_name, borrower_last_name, property_address)",
+    )
+    .eq("id", dealId)
+    .maybeSingle()
+  if (error) throw new Error(error.message)
+  if (!data) return null
+
+  const ident = Array.isArray(data.deal_identities) ? data.deal_identities[0] : data.deal_identities
+  const name = [ident?.borrower_first_name, ident?.borrower_last_name].filter(Boolean).join(" ")
+  return {
+    id: data.id,
+    dealNumber: data.deal_number ?? "—",
+    status: data.status,
+    clientName: name || "—",
+    propertyAddress: ident?.property_address ?? null,
+    city: data.city,
+    province: data.province,
+    loanAmount: Number(data.loan_amount ?? 0),
+    ltv: data.ltv === null ? null : Number(data.ltv),
+    mortgageProduct: data.mortgage_product,
+    amortizationYears: data.amortization_years === null ? null : Number(data.amortization_years),
+    closingDate: data.closing_date,
+    acceptedOfferId: data.accepted_offer_id,
+    lenderConfirmed: data.lender_confirmed,
+  }
+}
+
+/**
+ * The broker's own deal as the FULL non-identity field set (property/deal/qualifying), shaped like a
+ * LenderDealListItem so the shared LenderDealDetailSections component can render it — the broker sees
+ * every deal field (the borrower name + address, deliberately hidden from lenders, are shown
+ * separately from getBrokerDealDetail). RLS lets the owner read the whole row + junction lists.
+ */
+export async function getBrokerDealFull(supabase: DB, dealId: string): Promise<LenderDealListItem | null> {
+  const { data, error } = await supabase
+    .from("deals")
+    .select(
+      "id, deal_number, created_at, city, province, location_type, dwelling_type, property_value, square_footage, acres, general_notes, closing_date, closing_date_flexible, cof_date, mortgage_product, mortgage_position, loan_amount, ltv, amortization_years, insured, previously_declined, previously_declined_reason, primary_credit_score, credit_issue, co_borrower_credit_score, gds, tds, foreign_income_country, down_payment_source, owns_other_properties, door_count, credit_notes, income_notes, down_payment_notes, deal_income_types(income_type), deal_residency_statuses(residency)",
+    )
+    .eq("id", dealId)
+    .maybeSingle()
+  if (error) throw new Error(error.message)
+  if (!data) return null
+
+  return {
+    id: data.id,
+    dealNumber: data.deal_number ?? "—",
+    submittedAt: data.created_at,
+    city: data.city,
+    province: data.province,
+    locationType: data.location_type,
+    dwellingType: data.dwelling_type,
+    propertyValue: data.property_value === null ? null : Number(data.property_value),
+    squareFootage: data.square_footage === null ? null : Number(data.square_footage),
+    acres: data.acres === null ? null : Number(data.acres),
+    generalNotes: data.general_notes,
+    closingDate: data.closing_date,
+    closingDateFlexible: data.closing_date_flexible ?? false,
+    cofDate: data.cof_date,
+    mortgageProduct: data.mortgage_product,
+    mortgagePosition: data.mortgage_position,
+    loanAmount: data.loan_amount === null ? null : Number(data.loan_amount),
+    ltv: data.ltv === null ? null : Number(data.ltv),
+    amortizationYears: data.amortization_years,
+    insured: data.insured ?? false,
+    previouslyDeclined: data.previously_declined ?? false,
+    previouslyDeclinedReason: data.previously_declined_reason,
+    primaryCreditScore: data.primary_credit_score,
+    creditIssue: data.credit_issue,
+    coBorrowerCreditScore: data.co_borrower_credit_score,
+    incomeTypes: (data.deal_income_types ?? []).map((r: { income_type: Enums["income_type"] }) => r.income_type),
+    gds: data.gds === null ? null : Number(data.gds),
+    tds: data.tds === null ? null : Number(data.tds),
+    foreignIncomeCountry: data.foreign_income_country,
+    residencyStatuses: (data.deal_residency_statuses ?? []).map((r: { residency: Enums["residency_status"] }) => r.residency),
+    downPaymentSource: data.down_payment_source,
+    ownsOtherProperties: data.owns_other_properties ?? false,
+    doorCount: data.door_count,
+    creditNotes: data.credit_notes,
+    incomeNotes: data.income_notes,
+    downPaymentNotes: data.down_payment_notes,
+  }
+}
+
+/** Offers on a deal (broker view). Lender identity is intentionally absent — offers carry only the
+ *  opaque lender_id; the name is revealed post-acceptance via accepted_lender_for_deal. */
+export async function listDealOffers(supabase: DB, dealId: string): Promise<DealOffer[]> {
+  const { data, error } = await supabase
+    .from("offers")
+    .select(
+      "id, offer_number, status, mortgage_product, rate, rate_lock_days, commission_bps, commitment_turn_time_days, doc_review_turn_time_days, comments, created_at",
+    )
+    .eq("deal_id", dealId)
+    .order("offer_number", { ascending: true })
+  if (error) throw new Error(error.message)
+  return (data ?? []).map((o) => ({
+    id: o.id,
+    offerNumber: o.offer_number,
+    status: o.status,
+    mortgageProduct: o.mortgage_product,
+    rate: Number(o.rate),
+    rateLockDays: o.rate_lock_days,
+    commissionBps: o.commission_bps,
+    commitmentTurnTimeDays: o.commitment_turn_time_days,
+    docReviewTurnTimeDays: o.doc_review_turn_time_days,
+    comments: o.comments,
+    createdAt: o.created_at,
+  }))
+}
+
+/** Accept an offer (two-step model: reveal happens on confirm). p_one_step is available for OQ#21. */
+export async function acceptOffer(supabase: DB, offerId: string) {
+  const { data, error } = await supabase.rpc("accept_offer", { p_offer_id: offerId })
+  if (error) throw new Error(error.message)
+  return data
+}
+
+/** Confirm the accepted lender → generates the platform-fee invoice + reveals identities. */
+export async function confirmLender(supabase: DB, dealId: string) {
+  const { data, error } = await supabase.rpc("confirm_lender", { p_deal_id: dealId })
+  if (error) throw new Error(error.message)
+  return data
+}
+
+/** Undo an acceptance and switch (max 2 per calendar month, enforced server-side). */
+export async function switchOffer(supabase: DB, dealId: string) {
+  const { error } = await supabase.rpc("switch_offer", { p_deal_id: dealId })
+  if (error) throw new Error(error.message)
+}
+
+export type AcceptedLender = {
+  lenderId: string
+  firstName: string
+  lastName: string
+  institution: string | null
+}
+
+/** The accepted lender's identity — returns null until an offer is accepted (broker only). */
+export async function getAcceptedLender(supabase: DB, dealId: string): Promise<AcceptedLender | null> {
+  const { data, error } = await supabase.rpc("accepted_lender_for_deal", { p_deal_id: dealId })
+  if (error) throw new Error(error.message)
+  const row = Array.isArray(data) ? data[0] : data
+  if (!row) return null
+  return {
+    lenderId: row.lender_id,
+    firstName: row.first_name,
+    lastName: row.last_name,
+    institution: row.institution,
+  }
+}
+
+// ── Lender: submitted offers ───────────────────────────────────────────────────
+
+/** A row on the lender's Submitted Offers page (their offer + the deal it's on). */
+export type SubmittedOfferItem = {
+  id: string
+  dealNumber: string
+  province: string
+  city: string
+  propertyType: string
+  loanAmount: number
+  ltv: number
+  propertyValue: number
+  purpose: string
+  insuranceType: string
+  closingDate: string
+  offeredRate: number
+  rateType: "Fixed" | "Variable" | "Hybrid"
+  term: number
+  amortization: number
+  commissionBps: number
+  conditions: string[]
+  offerDate: string
+  expiryDate: string
+  status: "Pending" | "Accepted" | "Declined" | "Switched"
+}
+
+const OFFER_STATUS_LABEL: Record<Enums["offer_status"], SubmittedOfferItem["status"]> = {
+  pending: "Pending",
+  accepted: "Accepted",
+  declined: "Declined",
+  switched: "Switched",
+}
+
+function dwellingToPropertyType(d: Enums["dwelling_type"] | null): string {
+  switch (d) {
+    case "condo_apartment":
+      return "Condo"
+    case "townhouse":
+    case "condo_townhouse":
+      return "Townhouse"
+    case "duplex":
+    case "triplex":
+    case "fourplex":
+      return "Multi-Family"
+    case null:
+    case undefined:
+      return "Residential"
+    default:
+      return "Residential"
+  }
+}
+
+/**
+ * The current lender's own offers, each joined to its deal. RLS: offers_lender_own (own offers) +
+ * deals_lender_offered (deal readable because they offered). The deals embed needs the FK hint
+ * because deals↔offers has two relationships (offers.deal_id and deals.accepted_offer_id).
+ */
+export async function listSubmittedOffers(supabase: DB): Promise<SubmittedOfferItem[]> {
+  const {
+    data: { user },
+    error: userErr,
+  } = await supabase.auth.getUser()
+  if (userErr || !user) throw new Error("You must be signed in.")
+
+  const { data, error } = await supabase
+    .from("offers")
+    .select(
+      "id, status, rate, rate_lock_days, commission_bps, mortgage_product, comments, created_at, deals!offers_deal_id_fkey(deal_number, province, city, dwelling_type, loan_amount, ltv, property_value, purpose, insured, closing_date, amortization_years)",
+    )
+    .eq("lender_id", user.id)
+    .order("created_at", { ascending: false })
+  if (error) throw new Error(error.message)
+
+  return (data ?? []).map((o) => {
+    const d = Array.isArray(o.deals) ? o.deals[0] : o.deals
+    const created = new Date(o.created_at)
+    const expiry = new Date(created)
+    expiry.setDate(expiry.getDate() + o.rate_lock_days)
+    return {
+      id: o.id,
+      dealNumber: d?.deal_number ?? "—",
+      province: d?.province ? PROVINCE_CODE[d.province as Enums["province"]] : "",
+      city: d?.city ?? "",
+      propertyType: dwellingToPropertyType(d?.dwelling_type ?? null),
+      loanAmount: Number(d?.loan_amount ?? 0),
+      ltv: d?.ltv === null || d?.ltv === undefined ? 0 : Number(d.ltv),
+      propertyValue: Number(d?.property_value ?? 0),
+      purpose: d?.purpose === "refinance" ? "Refinance" : d?.purpose === "renewal" ? "Renewal" : "Purchase",
+      insuranceType: d?.insured ? "Insured" : "Conventional",
+      closingDate: d?.closing_date ?? "",
+      offeredRate: Number(o.rate),
+      rateType: o.mortgage_product.includes("arm_vrm") ? "Variable" : "Fixed",
+      term: PRODUCT_TERM_YEARS[o.mortgage_product],
+      amortization: d?.amortization_years === null || d?.amortization_years === undefined ? 0 : Number(d.amortization_years),
+      commissionBps: o.commission_bps,
+      conditions: o.comments ? [o.comments] : [],
+      offerDate: o.created_at.slice(0, 10),
+      expiryDate: expiry.toISOString().slice(0, 10),
+      status: OFFER_STATUS_LABEL[o.status],
+    }
+  })
+}
+
+/** Withdraw a pending offer (hard-deletes it — RLS offers_lender_withdraw allows delete when pending). */
+export async function withdrawOffer(supabase: DB, offerId: string) {
+  const { error } = await supabase.from("offers").delete().eq("id", offerId)
+  if (error) throw new Error(error.message)
+}
+
+/**
+ * Lender declines (hides) a deal — RPC decline_deal: inserts into deal_declines (lender_can_see_deal
+ * excludes declined deals, so it drops out of the New / Maturing / Expired feeds) and deletes any
+ * chat thread the lender had on that deal. Idempotent: a repeat decline is a no-op.
+ */
+export async function declineDeal(supabase: DB, dealId: string) {
+  const { error } = await supabase.rpc("decline_deal", { p_deal_id: dealId })
+  if (error) throw new Error(error.message)
+}
+
+/** Whether the current lender already has an offer (any status) on this deal. */
+export async function hasLenderOfferedOnDeal(supabase: DB, dealId: string): Promise<boolean> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return false
+  const { data, error } = await supabase
+    .from("offers")
+    .select("id")
+    .eq("deal_id", dealId)
+    .eq("lender_id", user.id)
+    .limit(1)
+  if (error) throw new Error(error.message)
+  return (data ?? []).length > 0
+}
+
+// ── Lender: invoices ───────────────────────────────────────────────────────────
+
+/** A row on the lender's Invoices page. `id` is the uuid (for actions); invoiceNumber is displayed. */
+export type LenderInvoiceItem = {
+  id: string
+  invoiceNumber: string
+  dealRef: string
+  propertyCity: string
+  propertyProvince: string
+  dealType: "Purchase" | "Refinance" | "Renewal"
+  term: string
+  loanAmount: number
+  closingDate: string
+  bps: number
+  amount: number
+  issueDate: string
+  dueDate: string
+  status: "Pending" | "Paid" | "Cancelled"
+  paidDate?: string
+  cancelledDate?: string
+}
+
+const INVOICE_STATUS_LABEL: Record<Enums["invoice_status"], LenderInvoiceItem["status"]> = {
+  pending: "Pending",
+  paid: "Paid",
+  cancelled: "Cancelled",
+}
+
+/** Invoices visible to the current lender (RLS: invoices_lender), with the deal's city/province/purpose. */
+export async function listLenderInvoices(supabase: DB): Promise<LenderInvoiceItem[]> {
+  const { data, error } = await supabase
+    .from("invoices")
+    .select(
+      "id, invoice_number, loan_amount, term_years, mortgage_product, platform_bps, amount, closing_date, due_date, status, paid_at, cancelled_at, created_at, deals(deal_number, city, province, purpose)",
+    )
+    .order("created_at", { ascending: false })
+  if (error) throw new Error(error.message)
+  return (data ?? []).map((i) => {
+    const d = Array.isArray(i.deals) ? i.deals[0] : i.deals
+    const rateType = i.mortgage_product.includes("arm_vrm") ? "Variable" : "Fixed"
+    return {
+      id: i.id,
+      invoiceNumber: i.invoice_number,
+      dealRef: d?.deal_number ?? "—",
+      propertyCity: d?.city ?? "",
+      propertyProvince: d?.province ? PROVINCE_CODE[d.province as Enums["province"]] : "",
+      dealType: d?.purpose === "refinance" ? "Refinance" : d?.purpose === "renewal" ? "Renewal" : "Purchase",
+      term: `${PRODUCT_TERM_YEARS[i.mortgage_product]}yr ${rateType}`,
+      loanAmount: Number(i.loan_amount),
+      closingDate: i.closing_date,
+      bps: i.platform_bps,
+      amount: Number(i.amount), // authoritative platform fee from the invoice RPC (don't recompute)
+      issueDate: i.created_at.slice(0, 10),
+      dueDate: i.due_date,
+      status: INVOICE_STATUS_LABEL[i.status],
+      paidDate: i.paid_at ? i.paid_at.slice(0, 10) : undefined,
+      cancelledDate: i.cancelled_at ? i.cancelled_at.slice(0, 10) : undefined,
+    }
+  })
+}
+
+/** Mark a pending invoice paid (RPC mark_invoice_paid). */
+export async function markInvoicePaid(supabase: DB, invoiceId: string) {
+  const { error } = await supabase.rpc("mark_invoice_paid", { p_invoice_id: invoiceId })
+  if (error) throw new Error(error.message)
+}
+
+/** Cancel a pending invoice (RPC cancel_invoice). */
+export async function cancelInvoice(supabase: DB, invoiceId: string, reason: string) {
+  const { error } = await supabase.rpc("cancel_invoice", { p_invoice_id: invoiceId, p_reason: reason })
+  if (error) throw new Error(error.message)
+}
+
+/** Recalculate a pending invoice's term/closing/loan (RPC update_invoice). */
+export async function updateInvoice(
+  supabase: DB,
+  invoiceId: string,
+  changes: { product?: Enums["mortgage_product"]; closingDate?: string; loanAmount?: number },
+) {
+  const { error } = await supabase.rpc("update_invoice", {
+    p_invoice_id: invoiceId,
+    p_product: changes.product ?? undefined,
+    p_closing: changes.closingDate ?? undefined,
+    p_loan_amount: changes.loanAmount ?? undefined,
+  })
+  if (error) throw new Error(error.message)
+}
+
+/**
+ * Generate (or regenerate) the invoice PDF via the `invoice-pdf` edge function and return a
+ * short-lived signed download URL. The function re-checks access with RLS, so a lender can only
+ * produce their own invoice's PDF. Requires the edge function to be served (locally: `supabase
+ * start` serves supabase/functions/; hosted: `supabase functions deploy invoice-pdf`).
+ */
+export async function downloadInvoicePdf(supabase: DB, invoiceId: string): Promise<string> {
+  const { data, error } = await supabase.functions.invoke("invoice-pdf", { body: { invoiceId } })
+  if (error) throw new Error(error.message)
+  const signedPath = (data as { signedPath?: string } | null)?.signedPath
+  if (!signedPath) throw new Error("The PDF service did not return a download link.")
+  // The function returns a host-relative signed path; prepend the public Supabase URL (the runtime's
+  // own SUPABASE_URL is the internal docker host and isn't reachable from the browser).
+  const base = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").replace(/\/$/, "")
+  return `${base}${signedPath}`
+}
