@@ -1,0 +1,8 @@
+<!-- Email-change email — sends the 6-digit CODE ({{ .Token }}) that Account Settings verifies
+     (verifyOtp type 'email_change'). A CODE, not a link (prefetch-safe — see recovery.html).
+     Mirror this in the dashboard (Auth -> Email Templates -> Change Email Address). Requires
+     "Secure email change" turned OFF so a single code to the NEW address completes the change. -->
+<h2>Confirm your new email</h2>
+<p>Enter this code in the app to confirm your new email address:</p>
+<p style="font-size:28px;font-weight:700;letter-spacing:6px;margin:16px 0">{{ .Token }}</p>
+<p style="color:#6b7280;font-size:13px">The code expires in 1 hour. If you didn't request this change, you can ignore this email.</p>
