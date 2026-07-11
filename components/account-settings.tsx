@@ -54,6 +54,11 @@ export function AccountSettings() {
   const [newEmail, setNewEmail] = useState('')
   const [emailBusy, setEmailBusy] = useState(false)
   const [emailShowErrors, setEmailShowErrors] = useState(false)
+  // Email change confirms with a 6-digit CODE, not a link: links get consumed by email prefetch
+  // scanners (Outlook Safe Links / Gmail), which causes otp_expired when the user actually clicks.
+  const [emailCodeSent, setEmailCodeSent] = useState(false)
+  const [emailCode, setEmailCode] = useState('')
+  const [emailVerifying, setEmailVerifying] = useState(false)
 
   const [pw, setPw] = useState({ current: '', next: '', confirm: '' })
   const [pwBusy, setPwBusy] = useState(false)
@@ -106,12 +111,45 @@ export function AccountSettings() {
     try {
       const { error } = await supabase.auth.updateUser({ email })
       if (error) throw new Error(error.message)
-      toast.success(t('emailSent', { email }))
-      setNewEmail('')
+      setEmailCodeSent(true)
+      toast.success(t('codeSentTo', { email }))
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t('saveErr'))
     } finally {
       setEmailBusy(false)
+    }
+  }
+
+  // Confirm the email change with the 6-digit code (verifyOtp type 'email_change').
+  const verifyEmailCode = async () => {
+    const email = newEmail.trim().toLowerCase()
+    if (emailCode.length < 6 || emailVerifying) return
+    setEmailVerifying(true)
+    try {
+      const { error } = await supabase.auth.verifyOtp({ email, token: emailCode, type: 'email_change' })
+      if (error) throw new Error(error.message)
+      setCurrentEmail(email)
+      setNewEmail('')
+      setEmailCode('')
+      setEmailCodeSent(false)
+      toast.success(t('emailChanged', { email }))
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t('errVerifyEmail'))
+    } finally {
+      setEmailVerifying(false)
+    }
+  }
+
+  // Re-trigger the confirmation email (same new address) to get a fresh code.
+  const resendEmailCode = async () => {
+    const email = newEmail.trim().toLowerCase()
+    if (!email) return
+    try {
+      const { error } = await supabase.auth.updateUser({ email })
+      if (error) throw new Error(error.message)
+      toast.success(t('codeResent'))
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t('saveErr'))
     }
   }
 
@@ -170,24 +208,52 @@ export function AccountSettings() {
 
       {/* Email */}
       <Section icon={<Mail className="h-4 w-4" />} title={t('secEmail')}>
-        <form onSubmit={saveEmail} className="space-y-4">
-          <div className="space-y-2">
-            <Label>{t('currentEmail')}</Label>
-            <Input value={currentEmail} disabled className="bg-muted/50" />
+        {emailCodeSent ? (
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <Label>{t('emailCodeTitle')}</Label>
+              <p className="text-sm text-muted-foreground">{t('emailCodeBody', { email: newEmail.trim().toLowerCase() })}</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email-code">{t('emailCode')} <span className="text-destructive">*</span></Label>
+              <Input
+                id="email-code"
+                value={emailCode}
+                onChange={(e) => setEmailCode(e.target.value.replace(/\D/g, '').slice(0, 8))}
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                placeholder="123456"
+                className="text-center text-xl tracking-[0.4em] font-semibold bg-muted/50"
+              />
+            </div>
+            <div className="flex items-center justify-between pt-2 border-t border-border">
+              <button type="button" onClick={resendEmailCode} className="text-sm text-primary font-medium hover:underline">{t('resendCode')}</button>
+              <div className="flex gap-2">
+                <Button type="button" variant="ghost" onClick={() => { setEmailCodeSent(false); setEmailCode('') }}>{t('emailCodeCancel')}</Button>
+                <Button type="button" onClick={verifyEmailCode} disabled={emailCode.length < 6 || emailVerifying}>{emailVerifying ? t('verifyingEmail') : t('verifyEmail')}</Button>
+              </div>
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="new-email">{t('newEmail')} <span className="text-destructive">*</span></Label>
-            <Input id="new-email" type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="name@example.com" aria-invalid={emailShowErrors && !newEmail.trim()} className="bg-muted/50" />
-            <FieldError show={emailShowErrors && !newEmail.trim()} />
-          </div>
-          <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-            <CheckCircle className="h-3.5 w-3.5 shrink-0" /> {t('emailChangeNote')}
-          </p>
-          <div className="flex items-center justify-between pt-2 border-t border-border">
-            <RequiredFieldsNote />
-            <Button type="submit" disabled={emailBusy} className={!newEmail.trim() ? 'opacity-50' : ''}>{t('updateEmail')}</Button>
-          </div>
-        </form>
+        ) : (
+          <form onSubmit={saveEmail} className="space-y-4">
+            <div className="space-y-2">
+              <Label>{t('currentEmail')}</Label>
+              <Input value={currentEmail} disabled className="bg-muted/50" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="new-email">{t('newEmail')} <span className="text-destructive">*</span></Label>
+              <Input id="new-email" type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="name@example.com" aria-invalid={emailShowErrors && !newEmail.trim()} className="bg-muted/50" />
+              <FieldError show={emailShowErrors && !newEmail.trim()} />
+            </div>
+            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+              <CheckCircle className="h-3.5 w-3.5 shrink-0" /> {t('emailChangeNote')}
+            </p>
+            <div className="flex items-center justify-between pt-2 border-t border-border">
+              <RequiredFieldsNote />
+              <Button type="submit" disabled={emailBusy} className={!newEmail.trim() ? 'opacity-50' : ''}>{t('updateEmail')}</Button>
+            </div>
+          </form>
+        )}
       </Section>
 
       {/* Password */}
