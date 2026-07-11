@@ -1,0 +1,13 @@
+<!-- Password-reset email — links to the app's /reset-password page via {{ .ConfirmationURL }}
+     (Supabase builds it from site_url + the redirectTo passed to resetPasswordForEmail). Applied to a
+     hosted project via `supabase config push` OR mirrored in the dashboard (Auth → Email Templates →
+     Reset Password). The /reset-password page also accepts a token_hash directly. -->
+<h2>Reset your LenderMatch password</h2>
+<p>We received a request to reset the password for your account. Click the button below to choose a new password:</p>
+<p style="margin:24px 0">
+  <a href="{{ .ConfirmationURL }}"
+     style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:8px;font-weight:600">
+    Reset password
+  </a>
+</p>
+<p style="color:#6b7280;font-size:13px">This link expires in 1 hour. If you didn't request a password reset, you can safely ignore this email — your password won't change.</p>

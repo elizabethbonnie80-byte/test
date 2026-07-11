@@ -278,15 +278,23 @@ docs/extracted/           Bubble extraction — ground truth for behavior parity
 
 ## Hosted deployment
 
-Deployed live **2026-07-08** (interim brand "Loan Link"): **frontend on Vercel, backend on Supabase
-cloud.** Both projects are managed via their MCP servers (Supabase + Vercel), OAuth-authenticated.
+**Client-owned infra — migration in progress (2026-07-10).** Handoff to the client's own GitHub + Supabase +
+Vercel is underway. The **authoritative, step-by-step deploy guide is [`docs/DEPLOY_RUNBOOK.md`](./docs/DEPLOY_RUNBOOK.md)**
+— follow it (and replicate for prod). Summary:
 
 | | |
 |---|---|
-| **App (Vercel)** | https://loan-link-rho.vercel.app — auto-deploys on push to GitLab `main` |
-| **Supabase project** | `loan-link` · ref `zyxfsewiejvtnhftnasu` · region `ca-central-1` · **Free plan** (pauses after ~1 week idle) |
-| **API URL** | `https://zyxfsewiejvtnhftnasu.supabase.co` |
-| **Access** | same seeded demo accounts as local, password `Test1234!` — see [Test accounts](#test-accounts-password-test1234). The hosted DB ran the full demo chain, so all six exist. |
+| **Repo** | GitHub `elizabethbonnie80-byte/test` (`origin`) |
+| **Supabase — prod** | `lender-match` · ref `bcedtccidfehdbthmhss` · `ca-central-1` · Free |
+| **Supabase — staging** | `lender-match-staging` · ref `kejjhlfelidajdijojmp` · `ca-central-1` · Free |
+| **Vercel** | project `lender-match` · framework `nextjs` |
+| **Branch / env model** | `staging` = **base dev branch** → Vercel Preview → staging Supabase · `main` = **prod** → Production → prod Supabase (merge `staging`→`main` only to deploy prod) |
+| **Status** | **staging live + seeded** (`/sign-in` 200, demo accounts `Test1234!`); **prod pending** (runbook §8) |
+| **Access** | seeded demo accounts, password `Test1234!` — see [Test accounts](#test-accounts-password-test1234) |
+
+> The subsections below are the **original dev** deployment notes (Supabase `zyxfsewiejvtnhftnasu`,
+> `loan-link-rho.vercel.app`, GitLab) — kept as background; **`docs/DEPLOY_RUNBOOK.md` supersedes them** for
+> the client infra (same gotchas, current values + the staging/prod branch model).
 
 ### Vercel
 

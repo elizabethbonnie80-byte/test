@@ -372,19 +372,31 @@ false` as defense-in-depth). In hosted deploys, `supabase functions deploy <name
 
 ## Hosted deployment (Supabase cloud + Vercel)
 
-**Live since 2026-07-08** (interim brand "Loan Link"). Full runbook + credentials in **[`README.md`](./README.md#hosted-deployment)**; the essentials + gotchas:
+**Client-owned infra — migration in progress (2026-07-10).** The project is being handed off to the client's
+own GitHub + Supabase + Vercel. **Full step-by-step in [`docs/DEPLOY_RUNBOOK.md`](./docs/DEPLOY_RUNBOOK.md)** —
+read it before touching hosted infra. Current state:
 
-- **App**: https://loan-link-rho.vercel.app (Vercel, auto-deploys on push to GitLab `main`). **Supabase**:
-  project `loan-link`, ref `zyxfsewiejvtnhftnasu`, region `ca-central-1`, Free plan. Both managed via
-  their MCP servers (Supabase + Vercel), OAuth-authenticated. Access = the same seeded demo accounts as
-  local (`Test1234!`); the hosted DB ran the full demo chain, so all six accounts exist.
+- **Repo**: GitHub `elizabethbonnie80-byte/test` (`origin`; single squashed history).
+- **Supabase** (org `vercel_icfg_NibyY0GS3ZwLKfHfaDirmYCb`, Free): **prod** `lender-match` `bcedtccidfehdbthmhss`
+  + **staging** `lender-match-staging` `kejjhlfelidajdijojmp`, both `ca-central-1`. Two separate Free projects
+  (branching is Pro-only).
+- **Vercel** project `lender-match` (`prj_WymejSMhXllTicV0MdurY06IGrDO`, team `team_RO4YBSdHhzKziaEJuJ9CpP9w`),
+  framework `nextjs`.
+- **Branch/env model**: `staging` = **base dev branch** → Vercel Preview → **staging** Supabase; `main` = prod →
+  Production → **prod** Supabase (merge `staging`→`main` ONLY to deploy prod). `NEXT_PUBLIC_*` are build-time.
+- **Status**: **staging fully live + seeded** (`/sign-in` 200; demo accounts `Test1234!`); **prod PENDING** (its
+  Vercel Production env vars + redeploy, functions/secrets/vault/auth — runbook §8). Old dev deployment (Supabase
+  `zyxfsewiejvtnhftnasu` + `loan-link-rho.vercel.app` + GitLab) is pre-migration and being retired.
+
+The gotchas below still apply (and are folded into the runbook):
 - **Vercel framework preset** is pinned in **`vercel.json`** (`{"framework":"nextjs"}`). Without it the
   import came up `framework: null` → every route `x-vercel-error: NOT_FOUND` **despite a green `next
   build`** (Vercel wasn't applying the Next.js runtime). Env: `NEXT_PUBLIC_SUPABASE_URL` + the public
   anon key; the service-role key never goes in Vercel env or any committed file.
-- **Migrations** applied via the Supabase MCP `apply_migration` — it records its OWN version timestamps,
-  so a CLI `supabase db push` won't see the repo file-versions as applied (reconcile with `migration
-  repair` or keep using the MCP; the CLI also needs the DB password, reset it in the dashboard first).
+- **Migrations**: the client projects were provisioned with **`npx supabase db push`** (all 35 applied clean,
+  recorded with the repo file-versions). ⚠️ On the OLD dev project migrations went through the Supabase MCP
+  `apply_migration`, which records its OWN version timestamps, so a CLI `db push` there won't see the repo
+  versions as applied (reconcile with `migration repair`) — a non-issue for the fresh client projects.
 - **Edge functions** deployed; custom secrets set in Dashboard → Edge Functions. ⚠️ **New-API-key gotcha:**
   the runtime injects the **new `sb_secret_…`** key as `SUPABASE_SERVICE_ROLE_KEY` (NOT the legacy JWT).
   The legacy JWT still works for seeding / Data API / Auth admin, but anything compared against the
@@ -505,6 +517,10 @@ on several sets — any data migration must map **by display label** using the t
   proactively (applies equally to applying migrations to the hosted/cloud DB — that's a prod push).
   Commit messages must **not** include a `Co-Authored-By` / AI-attribution trailer (client preference,
   2026-07-07). Keep messages plain (subject + body); no tool/assistant co-author lines.
+- **Branches** (client-owned infra): **`staging` is the base development branch** — day-to-day work + PRs
+  target it, and every push to `staging` (or any non-`main` branch) auto-deploys to Vercel **Preview** →
+  **staging** Supabase. **`main` is production-only**: merge `staging`→`main` ONLY when deploying to prod (a
+  push to `main` → Vercel **Production** → **prod** Supabase). Full flow in [`docs/DEPLOY_RUNBOOK.md`](./docs/DEPLOY_RUNBOOK.md).
 - **Language**: all repo code, comments, docs in English. (Conversation with the team may be Spanish.)
 - **DB**: snake_case; enums for closed sets; junction tables for deal-side lists; every table has
   `created_at`/`updated_at`; RLS enabled on every table, policies in the RLS migration.

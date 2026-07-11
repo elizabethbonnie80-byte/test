@@ -250,15 +250,26 @@ otp_expiry = 3600
 subject = "Confirm your Loan Link account"
 content_path = "./supabase/templates/confirmation.html"
 
-# Use a production-ready SMTP server
-# [auth.email.smtp]
-# enabled = true
-# host = "smtp.sendgrid.net"
-# port = 587
-# user = "apikey"
-# pass = "env(SENDGRID_API_KEY)"
-# admin_email = "admin@email.com"
-# sender_name = "Admin"
+# Password-reset (recovery) email — see supabase/templates/recovery.html. Links to the app's
+# /reset-password page via {{ .ConfirmationURL }} (built from site_url + the redirectTo passed to
+# resetPasswordForEmail), so site_url/additional_redirect_urls must be the real app URL when pushed.
+[auth.email.template.recovery]
+subject = "Reset your LenderMatch password"
+content_path = "./supabase/templates/recovery.html"
+
+# Auth email is configured in the hosted DASHBOARD (Auth → SMTP). This block is a versioned REFERENCE of
+# those values; `enabled = false` keeps LOCAL dev on the built-in test inbox (Inbucket) so `supabase start`
+# never sends real mail. To apply via `supabase config push` instead, set enabled = true AND parameterize
+# site_url / additional_redirect_urls with env() first (they are localhost here) — see docs/DEPLOY_RUNBOOK.md.
+# `pass` reads RESEND_API_KEY (kept out of git, in supabase/.env). Sender domain must be verified in Resend.
+[auth.email.smtp]
+enabled = false
+host = "smtp.resend.com"
+port = 587
+user = "resend"
+pass = "env(RESEND_API_KEY)"
+admin_email = "no-reply@lender-match.quinielaplay.com"
+sender_name = "LenderMatch"
 
 # Uncomment to customize email template
 # [auth.email.template.invite]
