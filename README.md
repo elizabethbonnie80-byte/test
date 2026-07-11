@@ -128,7 +128,7 @@ pnpm build && pnpm start    # production server on http://localhost:3000
 `pnpm dev` (Turbopack) works on Windows + pnpm — use it for iterative work; it serves on **`:3010`**
 (`next dev -p 3010`) to leave `:3000` free. Use `build && start` to verify a production build (that one
 still defaults to `:3000`). `supabase/config.toml` whitelists **both** ports for auth redirects, so the
-email-link flows (password reset / confirm) work on either — remember config changes need a
+email flows (password-reset code, signup confirm) work on either — remember config changes need a
 `supabase stop && supabase start` to take effect.
 
 > ⚠️ Turbopack (`pnpm dev`) can panic on Windows in two ways: (1) "Next.js package not found" (a known

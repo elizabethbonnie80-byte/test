@@ -246,11 +246,13 @@ drops the lender's `deal_chats` thread [`deal_chats` has no DELETE policy], the 
 entry point routes through [New Deals/Maturing feeds + messages inbox]; came in the auth-messaging merge —
 **applied to the hosted DB 2026-07-10**).
 
-**Wired to Supabase (real data + verified):** sign-in (role redirect) · **password reset** (`/forgot-password`
-→ `resetPasswordForEmail`; `/reset-password` establishes the recovery session from `token_hash`/`code`/hash
-then `updateUser` — sign-in's "Forgot password?" link is wired; the real-email redirect needs the dev-port URLs
-in `additional_redirect_urls` (dev runs on **:3010**; 3010/3000/3100 are all whitelisted), applied on the next
-`supabase stop && supabase start`) · sign-up (broker → active →
+**Wired to Supabase (real data + verified):** sign-in (role redirect) · **password reset** (**OTP-code flow**:
+`/forgot-password` is 2-step — email → `resetPasswordForEmail`, then a **6-digit code** + new password →
+`verifyOtp(type:'recovery')` + `updateUser`. A **code, not a link** — email prefetch scanners (Outlook Safe
+Links / Gmail) GET single-use links on delivery → the user's click fails `otp_expired`. The link-based
+`/reset-password` page stays as a fallback [reads `token_hash`/`code`/hash → session → `updateUser`]; sign-in's
+"Forgot password?" is wired; the recovery email sends `{{ .Token }}` via `supabase/templates/recovery.html`) ·
+sign-up (broker → active →
 `/deal-room`; lender → `pending_approval` → pending screen + admin queue; org dropdowns from the DB via
 `lib/queries/lookups.ts`; access code dropped pending OQ#22; **when email confirmations are ON** [hosted]
 sign-up shows an in-app **OTP code screen** [`verifyOtp`, length-agnostic 6–8-digit input — hosted OTP is 8]
@@ -331,7 +333,8 @@ conversation once threads load. The lender "Send Message"/"Message" buttons on N
 the thread via `send_deal_message`, and once a deal already has a thread the button **routes to that
 conversation** in the inbox instead of re-opening the compose dialog) ·
 **account settings (all 3 roles)** (shared `components/account-settings.tsx` = own name/phone [`profiles`]
-+ email change [`auth.updateUser` confirm flow] + password change [re-auth then update], rendered on broker
++ email change [**OTP code**: `updateUser({email})` → 6-digit code → `verifyOtp(type:'email_change')`; needs
+"Secure email change" OFF + the `supabase/templates/email-change.html` template] + password change [re-auth then update], rendered on broker
 `/settings`, `/lender/settings`, `/admin/settings`) · **bilateral blocking** (shared
 `components/block-manager.tsx` + `lib/queries/blocks.ts`: broker settings blocks lender institutions
 [`broker_blocked_institutions`], lender settings blocks brokerages [`lender_blocked_brokerages`] — real orgs
