@@ -105,8 +105,12 @@ both names, reading the key from `scripts/.env.cloud` (never printed); finally
 - **SMTP** (Auth → Emails → SMTP): host `smtp.resend.com`, port `587` (fallback `465`), user `resend`,
   password = `RESEND_API_KEY`, sender `LenderMatch <no-reply@lender-match.quinielaplay.com>` (Resend sending
   domain must be **verified**).
-- **Email Templates**: Reset Password ← `supabase/templates/recovery.html`; Confirm signup ←
-  `supabase/templates/confirmation.html`.
+- **Email Templates** — all send a 6-digit **CODE** (`{{ .Token }}`), NOT a link (magic links get consumed
+  by email prefetch scanners → `otp_expired`): Reset Password ← `supabase/templates/recovery.html`; Change
+  Email Address ← `supabase/templates/email-change.html`; Confirm signup ← `supabase/templates/confirmation.html`.
+  The app's `/forgot-password` + Account Settings verify the code via `verifyOtp`.
+- **Turn OFF "Secure email change"** (Auth → Providers → Email) so a single code sent to the NEW address
+  completes an email change (otherwise Supabase requires confirming BOTH the old and new address).
 - These live versioned in `config.toml` as reference, but are **applied via the dashboard**. `config.toml` keeps
   `[auth.email.smtp] enabled = false` so local `supabase start` stays on the Inbucket test inbox and never sends
   real mail. To instead apply via `supabase config push`, set `enabled = true` AND first parameterize
