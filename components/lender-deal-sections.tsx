@@ -80,14 +80,14 @@ export function LenderDealDetailSections({ deal }: { deal: LenderDealListItem })
 
       <DealSection title={t('secQualifying')}>
         <DealField label={t('cardCreditScore')} value={numOr(deal.primaryCreditScore)} />
-        <DealField label={t('cardCreditIssues')} value={enumLabel(LABELS.credit_issue, deal.creditIssue)} />
+        <DealField label={t('cardCreditIssues')} value={listLabel(LABELS.credit_issue, deal.creditIssues)} />
         <DealField label={t('cardCoBorrowerCreditScore')} value={numOr(deal.coBorrowerCreditScore)} />
         <DealField label={t('cardIncomeType')} value={listLabel(LABELS.income_type, deal.incomeTypes)} />
         <DealField label={t('cardGds')} value={deal.gds === null ? dash : t('pctValue', { n: deal.gds })} />
         <DealField label={t('cardTds')} value={deal.tds === null ? dash : t('pctValue', { n: deal.tds })} />
         <DealField label={t('cardForeignIncomeCountry')} value={textOr(deal.foreignIncomeCountry)} />
         <DealField label={t('cardResidencyStatus')} value={listLabel(LABELS.residency_status, deal.residencyStatuses)} />
-        <DealField label={t('cardDownPaymentSource')} value={enumLabel(LABELS.down_payment_source, deal.downPaymentSource)} />
+        <DealField label={t('cardDownPaymentSource')} value={listLabel(LABELS.down_payment_source, deal.downPaymentSources)} />
         <DealField label={t('cardOwnsOtherProperties')} value={boolLabel(deal.ownsOtherProperties)} />
         <DealField label={t('cardHowManyDoors')} value={numOr(deal.doorCount)} />
         <DealField label={t('cardCreditNotes')} value={textOr(deal.creditNotes)} />

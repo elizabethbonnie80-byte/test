@@ -291,6 +291,12 @@ export default function DealDetailPage() {
                             {t('days', { n: acceptedOffer.docReviewTurnTimeDays ?? '—' })}
                           </p>
                         </div>
+                        {acceptedOffer.lenderFeePct !== null && (
+                          <div>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">{t('lenderFeePct')}</p>
+                            <p className="text-xl font-bold text-foreground">{acceptedOffer.lenderFeePct.toFixed(1)}%</p>
+                          </div>
+                        )}
                       </div>
 
                       {acceptedOffer.comments && (
@@ -383,6 +389,12 @@ export default function DealDetailPage() {
                                   {t('processingDays', { n: offer.docReviewTurnTimeDays ?? '—' })}
                                 </p>
                               </div>
+                              {offer.lenderFeePct !== null && (
+                                <div>
+                                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">{t('lenderFeePct')}</p>
+                                  <p className="font-semibold text-foreground">{offer.lenderFeePct.toFixed(1)}%</p>
+                                </div>
+                              )}
                             </div>
 
                             {offer.comments && (

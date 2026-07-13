@@ -243,6 +243,29 @@ export type Database = {
           },
         ]
       }
+      deal_credit_issues: {
+        Row: {
+          credit_issue: Database["public"]["Enums"]["credit_issue"]
+          deal_id: string
+        }
+        Insert: {
+          credit_issue: Database["public"]["Enums"]["credit_issue"]
+          deal_id: string
+        }
+        Update: {
+          credit_issue?: Database["public"]["Enums"]["credit_issue"]
+          deal_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_credit_issues_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deal_declines: {
         Row: {
           created_at: string
@@ -272,6 +295,29 @@ export type Database = {
             columns: ["lender_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deal_down_payment_sources: {
+        Row: {
+          deal_id: string
+          down_payment_source: Database["public"]["Enums"]["down_payment_source"]
+        }
+        Insert: {
+          deal_id: string
+          down_payment_source: Database["public"]["Enums"]["down_payment_source"]
+        }
+        Update: {
+          deal_id?: string
+          down_payment_source?: Database["public"]["Enums"]["down_payment_source"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_down_payment_sources_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
             referencedColumns: ["id"]
           },
         ]
@@ -375,7 +421,8 @@ export type Database = {
           acres: number | null
           amortization_years: number | null
           archived: boolean
-          borrowed_down_payment: boolean
+          assets_liquid_value: number | null
+          assets_total_value: number | null
           bridge_loan_needed: boolean
           broker_id: string
           brokerage_id: string
@@ -389,14 +436,11 @@ export type Database = {
           cosignor_not_occupying: boolean
           cosignor_occupying: boolean
           created_at: string
-          credit_issue: Database["public"]["Enums"]["credit_issue"] | null
           credit_notes: string | null
           deal_number: string | null
           door_count: number | null
+          door_titles_count: number | null
           down_payment_notes: string | null
-          down_payment_source:
-            | Database["public"]["Enums"]["down_payment_source"]
-            | null
           dwelling_type: Database["public"]["Enums"]["dwelling_type"] | null
           expired_at: string | null
           first_and_heloc: boolean
@@ -415,6 +459,7 @@ export type Database = {
           loan_amount: number | null
           location_type: Database["public"]["Enums"]["location_type"] | null
           ltv: number | null
+          married_or_common_law: boolean
           medical_professional: boolean
           mortgage_position:
             | Database["public"]["Enums"]["mortgage_position"]
@@ -425,6 +470,7 @@ export type Database = {
           networth_program: boolean
           new_build: boolean
           new_to_canada: boolean
+          no_lender_exceptions_required: boolean
           occupancy: Database["public"]["Enums"]["occupancy_type"] | null
           owns_other_properties: boolean
           prequal: boolean
@@ -436,7 +482,9 @@ export type Database = {
           purchase_plus_improvements: boolean
           purpose: Database["public"]["Enums"]["transaction_purpose"] | null
           recreational_property: boolean
+          reverse_mortgage: boolean
           septic: boolean
+          spouse_not_on_application: boolean
           square_footage: number | null
           status: Database["public"]["Enums"]["deal_status"]
           submitted_at: string | null
@@ -444,6 +492,7 @@ export type Database = {
           transaction_type:
             | Database["public"]["Enums"]["transaction_type"]
             | null
+          transunion_being_used: boolean
           updated_at: string
           well_water: boolean
         }
@@ -452,7 +501,8 @@ export type Database = {
           acres?: number | null
           amortization_years?: number | null
           archived?: boolean
-          borrowed_down_payment?: boolean
+          assets_liquid_value?: number | null
+          assets_total_value?: number | null
           bridge_loan_needed?: boolean
           broker_id: string
           brokerage_id: string
@@ -466,14 +516,11 @@ export type Database = {
           cosignor_not_occupying?: boolean
           cosignor_occupying?: boolean
           created_at?: string
-          credit_issue?: Database["public"]["Enums"]["credit_issue"] | null
           credit_notes?: string | null
           deal_number?: string | null
           door_count?: number | null
+          door_titles_count?: number | null
           down_payment_notes?: string | null
-          down_payment_source?:
-            | Database["public"]["Enums"]["down_payment_source"]
-            | null
           dwelling_type?: Database["public"]["Enums"]["dwelling_type"] | null
           expired_at?: string | null
           first_and_heloc?: boolean
@@ -492,6 +539,7 @@ export type Database = {
           loan_amount?: number | null
           location_type?: Database["public"]["Enums"]["location_type"] | null
           ltv?: number | null
+          married_or_common_law?: boolean
           medical_professional?: boolean
           mortgage_position?:
             | Database["public"]["Enums"]["mortgage_position"]
@@ -502,6 +550,7 @@ export type Database = {
           networth_program?: boolean
           new_build?: boolean
           new_to_canada?: boolean
+          no_lender_exceptions_required?: boolean
           occupancy?: Database["public"]["Enums"]["occupancy_type"] | null
           owns_other_properties?: boolean
           prequal?: boolean
@@ -513,7 +562,9 @@ export type Database = {
           purchase_plus_improvements?: boolean
           purpose?: Database["public"]["Enums"]["transaction_purpose"] | null
           recreational_property?: boolean
+          reverse_mortgage?: boolean
           septic?: boolean
+          spouse_not_on_application?: boolean
           square_footage?: number | null
           status?: Database["public"]["Enums"]["deal_status"]
           submitted_at?: string | null
@@ -521,6 +572,7 @@ export type Database = {
           transaction_type?:
             | Database["public"]["Enums"]["transaction_type"]
             | null
+          transunion_being_used?: boolean
           updated_at?: string
           well_water?: boolean
         }
@@ -529,7 +581,8 @@ export type Database = {
           acres?: number | null
           amortization_years?: number | null
           archived?: boolean
-          borrowed_down_payment?: boolean
+          assets_liquid_value?: number | null
+          assets_total_value?: number | null
           bridge_loan_needed?: boolean
           broker_id?: string
           brokerage_id?: string
@@ -543,14 +596,11 @@ export type Database = {
           cosignor_not_occupying?: boolean
           cosignor_occupying?: boolean
           created_at?: string
-          credit_issue?: Database["public"]["Enums"]["credit_issue"] | null
           credit_notes?: string | null
           deal_number?: string | null
           door_count?: number | null
+          door_titles_count?: number | null
           down_payment_notes?: string | null
-          down_payment_source?:
-            | Database["public"]["Enums"]["down_payment_source"]
-            | null
           dwelling_type?: Database["public"]["Enums"]["dwelling_type"] | null
           expired_at?: string | null
           first_and_heloc?: boolean
@@ -569,6 +619,7 @@ export type Database = {
           loan_amount?: number | null
           location_type?: Database["public"]["Enums"]["location_type"] | null
           ltv?: number | null
+          married_or_common_law?: boolean
           medical_professional?: boolean
           mortgage_position?:
             | Database["public"]["Enums"]["mortgage_position"]
@@ -579,6 +630,7 @@ export type Database = {
           networth_program?: boolean
           new_build?: boolean
           new_to_canada?: boolean
+          no_lender_exceptions_required?: boolean
           occupancy?: Database["public"]["Enums"]["occupancy_type"] | null
           owns_other_properties?: boolean
           prequal?: boolean
@@ -590,7 +642,9 @@ export type Database = {
           purchase_plus_improvements?: boolean
           purpose?: Database["public"]["Enums"]["transaction_purpose"] | null
           recreational_property?: boolean
+          reverse_mortgage?: boolean
           septic?: boolean
+          spouse_not_on_application?: boolean
           square_footage?: number | null
           status?: Database["public"]["Enums"]["deal_status"]
           submitted_at?: string | null
@@ -598,6 +652,7 @@ export type Database = {
           transaction_type?:
             | Database["public"]["Enums"]["transaction_type"]
             | null
+          transunion_being_used?: boolean
           updated_at?: string
           well_water?: boolean
         }
@@ -966,6 +1021,7 @@ export type Database = {
             | null
           doc_review_turn_time_days: number | null
           id: string
+          lender_fee_pct: number | null
           lender_id: string
           mortgage_product: Database["public"]["Enums"]["mortgage_product"]
           offer_number: number
@@ -985,6 +1041,7 @@ export type Database = {
             | null
           doc_review_turn_time_days?: number | null
           id?: string
+          lender_fee_pct?: number | null
           lender_id: string
           mortgage_product: Database["public"]["Enums"]["mortgage_product"]
           offer_number: number
@@ -1004,6 +1061,7 @@ export type Database = {
             | null
           doc_review_turn_time_days?: number | null
           id?: string
+          lender_fee_pct?: number | null
           lender_id?: string
           mortgage_product?: Database["public"]["Enums"]["mortgage_product"]
           offer_number?: number
@@ -1476,6 +1534,7 @@ export type Database = {
             | null
           doc_review_turn_time_days: number | null
           id: string
+          lender_fee_pct: number | null
           lender_id: string
           mortgage_product: Database["public"]["Enums"]["mortgage_product"]
           offer_number: number
@@ -1632,6 +1691,7 @@ export type Database = {
           p_commitment_turn_time_days?: number
           p_deal_id: string
           p_doc_review_turn_time_days?: number
+          p_lender_fee_pct?: number
           p_mortgage_product: Database["public"]["Enums"]["mortgage_product"]
           p_rate: number
           p_rate_lock_days: number
@@ -1647,6 +1707,7 @@ export type Database = {
             | null
           doc_review_turn_time_days: number | null
           id: string
+          lender_fee_pct: number | null
           lender_id: string
           mortgage_product: Database["public"]["Enums"]["mortgage_product"]
           offer_number: number
@@ -1739,12 +1800,12 @@ export type Database = {
           closing_date_flexible: boolean
           co_borrower_credit_score: number
           cof_date: string
-          credit_issue: Database["public"]["Enums"]["credit_issue"]
+          credit_issues: Database["public"]["Enums"]["credit_issue"][]
           credit_notes: string
           deal_number: string
           door_count: number
           down_payment_notes: string
-          down_payment_source: Database["public"]["Enums"]["down_payment_source"]
+          down_payment_sources: Database["public"]["Enums"]["down_payment_source"][]
           dwelling_type: Database["public"]["Enums"]["dwelling_type"]
           foreign_income_country: string
           gds: number
@@ -1785,12 +1846,12 @@ export type Database = {
           closing_date_flexible: boolean
           co_borrower_credit_score: number
           cof_date: string
-          credit_issue: Database["public"]["Enums"]["credit_issue"]
+          credit_issues: Database["public"]["Enums"]["credit_issue"][]
           credit_notes: string
           deal_number: string
           door_count: number
           down_payment_notes: string
-          down_payment_source: Database["public"]["Enums"]["down_payment_source"]
+          down_payment_sources: Database["public"]["Enums"]["down_payment_source"][]
           dwelling_type: Database["public"]["Enums"]["dwelling_type"]
           foreign_income_country: string
           gds: number
@@ -1891,12 +1952,12 @@ export type Database = {
           closing_date_flexible: boolean
           co_borrower_credit_score: number
           cof_date: string
-          credit_issue: Database["public"]["Enums"]["credit_issue"]
+          credit_issues: Database["public"]["Enums"]["credit_issue"][]
           credit_notes: string
           deal_number: string
           door_count: number
           down_payment_notes: string
-          down_payment_source: Database["public"]["Enums"]["down_payment_source"]
+          down_payment_sources: Database["public"]["Enums"]["down_payment_source"][]
           dwelling_type: Database["public"]["Enums"]["dwelling_type"]
           foreign_income_country: string
           gds: number
@@ -1934,12 +1995,12 @@ export type Database = {
           closing_date_flexible: boolean
           co_borrower_credit_score: number
           cof_date: string
-          credit_issue: Database["public"]["Enums"]["credit_issue"]
+          credit_issues: Database["public"]["Enums"]["credit_issue"][]
           credit_notes: string
           deal_number: string
           door_count: number
           down_payment_notes: string
-          down_payment_source: Database["public"]["Enums"]["down_payment_source"]
+          down_payment_sources: Database["public"]["Enums"]["down_payment_source"][]
           dwelling_type: Database["public"]["Enums"]["dwelling_type"]
           foreign_income_country: string
           gds: number
@@ -2040,7 +2101,8 @@ export type Database = {
           acres: number | null
           amortization_years: number | null
           archived: boolean
-          borrowed_down_payment: boolean
+          assets_liquid_value: number | null
+          assets_total_value: number | null
           bridge_loan_needed: boolean
           broker_id: string
           brokerage_id: string
@@ -2054,14 +2116,11 @@ export type Database = {
           cosignor_not_occupying: boolean
           cosignor_occupying: boolean
           created_at: string
-          credit_issue: Database["public"]["Enums"]["credit_issue"] | null
           credit_notes: string | null
           deal_number: string | null
           door_count: number | null
+          door_titles_count: number | null
           down_payment_notes: string | null
-          down_payment_source:
-            | Database["public"]["Enums"]["down_payment_source"]
-            | null
           dwelling_type: Database["public"]["Enums"]["dwelling_type"] | null
           expired_at: string | null
           first_and_heloc: boolean
@@ -2080,6 +2139,7 @@ export type Database = {
           loan_amount: number | null
           location_type: Database["public"]["Enums"]["location_type"] | null
           ltv: number | null
+          married_or_common_law: boolean
           medical_professional: boolean
           mortgage_position:
             | Database["public"]["Enums"]["mortgage_position"]
@@ -2090,6 +2150,7 @@ export type Database = {
           networth_program: boolean
           new_build: boolean
           new_to_canada: boolean
+          no_lender_exceptions_required: boolean
           occupancy: Database["public"]["Enums"]["occupancy_type"] | null
           owns_other_properties: boolean
           prequal: boolean
@@ -2101,7 +2162,9 @@ export type Database = {
           purchase_plus_improvements: boolean
           purpose: Database["public"]["Enums"]["transaction_purpose"] | null
           recreational_property: boolean
+          reverse_mortgage: boolean
           septic: boolean
+          spouse_not_on_application: boolean
           square_footage: number | null
           status: Database["public"]["Enums"]["deal_status"]
           submitted_at: string | null
@@ -2109,6 +2172,7 @@ export type Database = {
           transaction_type:
             | Database["public"]["Enums"]["transaction_type"]
             | null
+          transunion_being_used: boolean
           updated_at: string
           well_water: boolean
         }

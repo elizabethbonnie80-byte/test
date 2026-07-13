@@ -8,13 +8,16 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { FieldError } from '@/components/field-error'
 import { CheckCircle } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
+import { sendContactMessage } from '@/lib/queries/contact'
+import { SUPPORT_EMAIL } from '@/lib/brand'
 
 type FormState = 'idle' | 'submitting' | 'success'
 
 /**
  * Shared Contact page body for the broker and lender portals — the two routes were 95% identical,
  * differing only in the header chrome and two i18n keys. Pass the role's header + subtitle/thank-you
- * keys. (The submit is still a prototype; real Contact-Us wiring → support email is a Round 3 item.)
+ * keys. Submits via the `contact-us` edge function (Resend) to SUPPORT_EMAIL (Round 3 Phase 1).
  */
 export function ContactPage({
   header,
@@ -28,6 +31,7 @@ export function ContactPage({
   const t = useT('contact')
   const [formState, setFormState] = useState<FormState>('idle')
   const [showErrors, setShowErrors] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -43,21 +47,28 @@ export function ContactPage({
 
   const isValid = form.name.trim() && form.email.trim() && form.message.trim()
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!isValid) {
       setShowErrors(true)
       return
     }
     setFormState('submitting')
-    // Prototype — simulates async submission
-    setTimeout(() => setFormState('success'), 1200)
+    setError(null)
+    try {
+      await sendContactMessage(createClient(), form)
+      setFormState('success')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('errorGeneric'))
+      setFormState('idle')
+    }
   }
 
   const handleReset = () => {
     setForm({ name: '', email: '', organization: '', invoiceNumber: '', dealRef: '', message: '' })
     setFormState('idle')
     setShowErrors(false)
+    setError(null)
   }
 
   return (
@@ -199,6 +210,8 @@ export function ContactPage({
                   </div>
                 </div>
 
+                {error && <p className="text-sm text-destructive">{error}</p>}
+
                 {/* Submit */}
                 <div className="flex items-center justify-between pt-2 border-t border-border">
                   <p className="text-xs text-muted-foreground">
@@ -216,6 +229,10 @@ export function ContactPage({
             )}
           </div>
         </div>
+
+        <p className="text-center text-sm text-muted-foreground mt-6">
+          {t('orEmail', { email: SUPPORT_EMAIL })}
+        </p>
       </main>
     </div>
   )

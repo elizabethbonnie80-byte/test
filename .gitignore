@@ -8,6 +8,9 @@ __v0_jsx-dev-runtime.ts
 
 # Environment variables
 .env*.local
+# A stray root `.env` is a local copy of .env.example (see its header: copy to `.env.local`) —
+# keep it out of the repo so real values can never land in a commit by accident.
+.env
 
 # Common ignores
 node_modules

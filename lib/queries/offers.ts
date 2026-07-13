@@ -16,6 +16,8 @@ export type MakeOfferInput = {
   commitmentTurnTimeDays?: number | null
   docReviewTurnTimeDays?: number | null
   comments?: string | null
+  /** Optional, one decimal — loan-pricing info shown to the broker for comparison; never affects the invoice. */
+  lenderFeePct?: number | null
 }
 
 /** Submit an offer (atomic RPC: insert + flip deal to offer_received + notify broker). */
@@ -29,6 +31,7 @@ export async function makeOffer(supabase: DB, input: MakeOfferInput) {
     p_commitment_turn_time_days: input.commitmentTurnTimeDays ?? undefined,
     p_doc_review_turn_time_days: input.docReviewTurnTimeDays ?? undefined,
     p_comments: input.comments ?? undefined,
+    p_lender_fee_pct: input.lenderFeePct ?? undefined,
   })
   if (error) throw new Error(error.message)
   return data
@@ -48,6 +51,7 @@ export type DealOffer = {
   docReviewTurnTimeDays: number | null
   comments: string | null
   createdAt: string
+  lenderFeePct: number | null
 }
 
 export type BrokerDealDetail = {
@@ -109,7 +113,7 @@ export async function getBrokerDealFull(supabase: DB, dealId: string): Promise<L
   const { data, error } = await supabase
     .from("deals")
     .select(
-      "id, deal_number, created_at, city, province, location_type, dwelling_type, property_value, square_footage, acres, general_notes, closing_date, closing_date_flexible, cof_date, mortgage_product, mortgage_position, loan_amount, ltv, amortization_years, insured, previously_declined, previously_declined_reason, primary_credit_score, credit_issue, co_borrower_credit_score, gds, tds, foreign_income_country, down_payment_source, owns_other_properties, door_count, credit_notes, income_notes, down_payment_notes, deal_income_types(income_type), deal_residency_statuses(residency)",
+      "id, deal_number, created_at, city, province, location_type, dwelling_type, property_value, square_footage, acres, general_notes, closing_date, closing_date_flexible, cof_date, mortgage_product, mortgage_position, loan_amount, ltv, amortization_years, insured, previously_declined, previously_declined_reason, primary_credit_score, co_borrower_credit_score, gds, tds, foreign_income_country, owns_other_properties, door_count, credit_notes, income_notes, down_payment_notes, deal_income_types(income_type), deal_residency_statuses(residency), deal_credit_issues(credit_issue), deal_down_payment_sources(down_payment_source)",
     )
     .eq("id", dealId)
     .maybeSingle()
@@ -140,14 +144,14 @@ export async function getBrokerDealFull(supabase: DB, dealId: string): Promise<L
     previouslyDeclined: data.previously_declined ?? false,
     previouslyDeclinedReason: data.previously_declined_reason,
     primaryCreditScore: data.primary_credit_score,
-    creditIssue: data.credit_issue,
+    creditIssues: (data.deal_credit_issues ?? []).map((r: { credit_issue: Enums["credit_issue"] }) => r.credit_issue),
     coBorrowerCreditScore: data.co_borrower_credit_score,
     incomeTypes: (data.deal_income_types ?? []).map((r: { income_type: Enums["income_type"] }) => r.income_type),
     gds: data.gds === null ? null : Number(data.gds),
     tds: data.tds === null ? null : Number(data.tds),
     foreignIncomeCountry: data.foreign_income_country,
     residencyStatuses: (data.deal_residency_statuses ?? []).map((r: { residency: Enums["residency_status"] }) => r.residency),
-    downPaymentSource: data.down_payment_source,
+    downPaymentSources: (data.deal_down_payment_sources ?? []).map((r: { down_payment_source: Enums["down_payment_source"] }) => r.down_payment_source),
     ownsOtherProperties: data.owns_other_properties ?? false,
     doorCount: data.door_count,
     creditNotes: data.credit_notes,
@@ -162,7 +166,7 @@ export async function listDealOffers(supabase: DB, dealId: string): Promise<Deal
   const { data, error } = await supabase
     .from("offers")
     .select(
-      "id, offer_number, status, mortgage_product, rate, rate_lock_days, commission_bps, commitment_turn_time_days, doc_review_turn_time_days, comments, created_at",
+      "id, offer_number, status, mortgage_product, rate, rate_lock_days, commission_bps, commitment_turn_time_days, doc_review_turn_time_days, comments, created_at, lender_fee_pct",
     )
     .eq("deal_id", dealId)
     .order("offer_number", { ascending: true })
@@ -179,6 +183,7 @@ export async function listDealOffers(supabase: DB, dealId: string): Promise<Deal
     docReviewTurnTimeDays: o.doc_review_turn_time_days,
     comments: o.comments,
     createdAt: o.created_at,
+    lenderFeePct: o.lender_fee_pct === null ? null : Number(o.lender_fee_pct),
   }))
 }
 

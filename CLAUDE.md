@@ -35,17 +35,18 @@ This app is a rebuild of a working Bubble.io app. The extracted spec-from-implem
 Pending rebuild work (features/polish/decisions not yet done) is tracked in **[`docs/backlog.md`](./docs/backlog.md)**
 — separate from the frozen extraction above; keep it in sync with the "Wired / Still mock" lists below.
 
-## Round 3 change request — DEFINED BUT ON HOLD (do NOT implement yet)
+## Round 3 change request — APPROVED, IN PROGRESS
 
-A third batch of client-requested changes ("Round 3") is fully specced and quoted but **on hold pending
-the client's written approval of budget + scope**. **Do NOT implement any Round 3 item until it is
-approved** — even where Round 3 overrides the original spec (list windows, Confirm Lender, brand), the
-current behavior stands until then. Source of truth: **`docs/New additions to platform.pdf`** (client's
-raw request) + **`docs/LenderMatch_Round3_Change_Request.docx`** (+ a `.pdf` export; final proposal **Rev.3**
-— retargeted to **this React + Supabase build** instead of Bubble, **firm 64 h total** [QA/testing included],
-delivered in 3 phases [21 / 19 / 24 h]; all client decisions confirmed there in §4).
+A third batch of client-requested changes ("Round 3") was fully specced and quoted, and the client
+**approved the budget + scope in writing on 2026-07-13**. It is now active work — implement it phase by
+phase (Phase 1 → 2 → 3, see `docs/round3-progress.md` for the live checklist), and where Round 3
+overrides the original spec (list windows, Confirm Lender, brand) the Round 3 rule now governs. Source of
+truth: **`docs/New additions to platform.pdf`** (client's raw request) + **`docs/LenderMatch_Round3_Change_Request.docx`**
+(+ a `.pdf` export; final proposal **Rev.3** — retargeted to **this React + Supabase build** instead of
+Bubble, **firm 64 h total** [QA/testing included], delivered in 3 phases [21 / 19 / 24 h]; all client
+decisions confirmed there in §4).
 
-Scope, once approved (grouped as in the proposal):
+Scope (grouped as in the proposal; track granular status in `docs/round3-progress.md`):
 - **Create Deal** — rename → "Primary Borrower First/Last"; "Married or common law" + "spouse on the
   application?" conditional (credit notes become mandatory if not on app); "Reverse Mortgage" checkbox;
   liquid/total assets (required when Networth checked); "how many titles are the doors on?" input; fix the
@@ -76,13 +77,15 @@ Scope, once approved (grouped as in the proposal):
   Supabase Storage, Resend email, Vercel + Supabase domain) — no Bubble plan / Workload-Unit budget applies;
   free/low-tier usage monitored.
 
-**Consequences for current work:** the interim brand is **Loan Link** (the LenderMatch™ rebrand is a Round 3
-item). The app-side rebrand is now **pre-wired to be a one-line change**: brand name/logo/support-email/domain
-are centralized in `lib/brand.ts` (see Conventions → Brand), so when Round 3 is approved, flipping `BRAND` to
-"LenderMatch™" (+ swapping the logo asset + the `invoice-pdf` edge fn's `BRAND`) propagates everywhere. Do NOT
-flip the value until Round 3 is approved. Several would-be backlog items are subsumed by Round 3 and must NOT
-be actioned separately — the list-window thresholds (OQ#18), the Confirm-Lender removal (OQ#21), and the
-Contact-Us wiring all ship with Round 3.
+**Consequences for current work:** the interim brand stays **Loan Link** until the Phase 2 rebrand item is
+actually executed (it needs the client's LenderMatch™ logo asset + confirmation of final brand copy — see
+`docs/round3-progress.md`). The app-side rebrand is **pre-wired to be a one-line change**: brand
+name/logo/support-email/domain are centralized in `lib/brand.ts` (see Conventions → Brand), so flipping
+`BRAND` to "LenderMatch™" (+ swapping the logo asset + the `invoice-pdf` edge fn's `BRAND`) propagates
+everywhere — do this as part of the Phase 2 rebrand task, not ahead of it. The list-window thresholds
+(OQ#18), the Confirm-Lender removal (OQ#21), and the Contact-Us wiring are Round 3 items now being
+implemented per-phase — see `docs/round3-progress.md` for exact status; don't re-derive scope from
+`open-questions.md` for these three, Round 3 supersedes them.
 
 ## Stack
 
@@ -339,12 +342,17 @@ conversation** in the inbox instead of re-opening the compose dialog) ·
 `components/block-manager.tsx` + `lib/queries/blocks.ts`: broker settings blocks lender institutions
 [`broker_blocked_institutions`], lender settings blocks brokerages [`lender_blocked_brokerages`] — real orgs
 from the DB, confirm-dialog + list/unblock; these blocks actually change deal visibility via
-`lender_can_see_deal`; verified block→unblock end-to-end).
+`lender_can_see_deal`; verified block→unblock end-to-end) · **Round 3 Phase 1** (all 18 items — see
+`docs/round3-progress.md` for the granular list; highlights: Create Deal's new fields/checkboxes incl.
+multi-select Credit Issues/Down Payment Source/Residency Status [`deal_credit_issues`/
+`deal_down_payment_sources` junction tables, migration 36] + info popups; the bps auto-deduct/"Final
+Commission Amount" preview + optional Lender Fee % in the Make Offer dialog; broker-admin brokerage-wide
+Deal Room visibility with a "Submitted By" column; the real **Contact-Us** wiring via a new `contact-us`
+edge function [Resend, mirrors `notify-email`]; the Maturing window is now 2–14 days).
 
-**Still mock / not built:** contact pages — **redesigned** per the client mockup (no sidebar/footer, unified
-fields) but the form submit is still a prototype (real Contact-Us wiring → support email ships with Round 3).
-(The **notification email channel** is now wired — see the Wired list — pending only a verified Resend sending
-domain + hosted deploy config for real delivery.)
+**Still mock / not built:** nothing currently tracked here — the last prototype (Contact-Us form submit)
+was wired in Round 3 Phase 1 (see below). (The **notification email channel** is now wired — see the
+Wired list — pending only a verified Resend sending domain + hosted deploy config for real delivery.)
 
 **Removed (client request):** the lender **Expired Deals** page + its nav link + `listExpiredDeals` (lenders
 can't act on expired deals, so the archive view was dropped — deals still expire/archive server-side via cron);

@@ -20,6 +20,8 @@ import { makeOffer } from "@/lib/queries/offers"
 import { scanContact } from "@/lib/queries/anti-contact"
 import { useT } from "@/components/i18n-provider"
 import { useEnums } from "@/lib/use-enums"
+import { PRODUCT_TERM_YEARS, platformBpsFor } from "@/lib/queries/deals"
+import { BRAND } from "@/lib/brand"
 import type { Database } from "@/lib/database.types"
 
 type MortgageProduct = Database["public"]["Enums"]["mortgage_product"]
@@ -32,6 +34,7 @@ const EMPTY = {
   commitmentDays: "",
   docReviewDays: "",
   comments: "",
+  lenderFeePct: "",
 }
 
 /**
@@ -105,6 +108,7 @@ export function MakeOfferDialog({
           commitmentTurnTimeDays: Number(form.commitmentDays),
           docReviewTurnTimeDays: Number(form.docReviewDays),
           comments: form.comments || null,
+          lenderFeePct: form.lenderFeePct.trim() === "" ? null : Number(form.lenderFeePct),
         })
       }
       const msg = count === 1 ? t("sentOne") : t("sentMany", { count })
@@ -160,6 +164,12 @@ export function MakeOfferDialog({
             <FieldError show={invalid(form.commissionBps)} />
           </div>
           <div className="space-y-2">
+            <Label htmlFor="offerLenderFeePct">{t("lenderFeePct")}</Label>
+            <Input id="offerLenderFeePct" type="number" step="0.1" placeholder={t("lenderFeePctPlaceholder")}
+              value={form.lenderFeePct} onChange={(e) => setForm((f) => ({ ...f, lenderFeePct: e.target.value }))} />
+            <p className="text-xs text-muted-foreground">{t("lenderFeePctHint")}</p>
+          </div>
+          <div className="space-y-2">
             <Label htmlFor="offerRateLock">{t("rateLock")}<Req /></Label>
             <Input id="offerRateLock" type="number" placeholder={t("rateLockPlaceholder")} className={errCls(invalid(form.rateLockDays))}
               value={form.rateLockDays} onChange={(e) => setForm((f) => ({ ...f, rateLockDays: e.target.value }))} />
@@ -183,6 +193,27 @@ export function MakeOfferDialog({
               value={form.comments} onChange={(e) => setForm((f) => ({ ...f, comments: e.target.value }))} />
           </div>
         </div>
+
+        {form.mortgageProduct && form.commissionBps.trim() !== "" && !Number.isNaN(Number(form.commissionBps)) && (
+          <div className="rounded-md border border-border bg-muted/30 p-3 space-y-2">
+            {(() => {
+              const grossBps = Number(form.commissionBps)
+              const product = form.mortgageProduct as MortgageProduct
+              const platformBps = platformBpsFor(product)
+              const netBps = Math.max(0, grossBps - platformBps)
+              return (
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">
+                    {t("platformDeduction", { brand: BRAND, term: PRODUCT_TERM_YEARS[product] })}
+                  </span>
+                  <span className="text-destructive">-{platformBps} bps</span>
+                  <span className="font-semibold text-foreground">{t("finalCommissionAmount")}: {netBps} bps</span>
+                </div>
+              )
+            })()}
+            <p className="text-xs text-muted-foreground">{t("commissionFinePrint", { brand: BRAND })}</p>
+          </div>
+        )}
 
         {error && <p className="text-sm text-destructive">{error}</p>}
 

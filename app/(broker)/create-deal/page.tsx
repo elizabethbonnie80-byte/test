@@ -35,13 +35,33 @@ import {
   MapPin,
   ChevronRight,
   Save,
+  Info,
 } from "lucide-react"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+
+/** Small (i) info button that pops up client-provided help copy — used for GDS/TDS + the 4 notes. */
+function InfoHint({ title, text, ariaLabel }: { title: string; text: string; ariaLabel: string }) {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          aria-label={ariaLabel}
+          className="inline-flex items-center justify-center text-muted-foreground hover:text-foreground align-middle ml-1"
+        >
+          <Info className="h-3.5 w-3.5" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="text-sm">
+        <p className="font-medium mb-1">{title}</p>
+        <p className="text-muted-foreground">{text}</p>
+      </PopoverContent>
+    </Popover>
+  )
+}
 
 type Enums = Database["public"]["Enums"]
 type Section = "client" | "deal" | "qualifying" | "property"
-
-// Sentinel for a "clear" item inside an optional Select (Radix forbids an empty-string item value).
-const CLEAR = "__clear__"
 
 /** parse a form string to a number, or null when blank/invalid. */
 function num(value: string): number | null {
@@ -103,6 +123,8 @@ export default function CreateDealPage() {
   const [occupancyType, setOccupancyType] = useState<Enums["occupancy_type"] | "">("")
   const [transactionPurpose, setTransactionPurpose] = useState<Enums["transaction_purpose"] | "">("")
   const [transactionType, setTransactionType] = useState<Enums["transaction_type"] | "">("")
+  const [marriedOrCommonLaw, setMarriedOrCommonLaw] = useState(false)
+  const [spouseNotOnApplication, setSpouseNotOnApplication] = useState(false)
 
   // Deal Information
   const [closingDate, setClosingDate] = useState("")
@@ -130,19 +152,26 @@ export default function CreateDealPage() {
   const [bridgeLoanNeeded, setBridgeLoanNeeded] = useState(false)
   const [purchasePlusImprovements, setPurchasePlusImprovements] = useState(false)
   const [networthProgram, setNetworthProgram] = useState(false)
+  const [reverseMortgage, setReverseMortgage] = useState(false)
 
   // Qualifying Information
   const [creditScore, setCreditScore] = useState("")
   const [coBorrowerCreditScore, setCoBorrowerCreditScore] = useState("")
-  const [creditIssue, setCreditIssue] = useState<Enums["credit_issue"] | "">("")
+  const [creditIssues, setCreditIssues] = useState<Enums["credit_issue"][]>([])
   const [incomeTypes, setIncomeTypes] = useState<Enums["income_type"][]>([])
   const [gds, setGds] = useState("")
   const [tds, setTds] = useState("")
   const [foreignIncomeCountry, setForeignIncomeCountry] = useState("")
   const [ownsOtherProperties, setOwnsOtherProperties] = useState(false)
   const [doorCount, setDoorCount] = useState("")
-  const [residencyStatus, setResidencyStatus] = useState<Enums["residency_status"] | "">("")
-  const [downPaymentSource, setDownPaymentSource] = useState<Enums["down_payment_source"] | "">("")
+  const [doorTitlesCount, setDoorTitlesCount] = useState("")
+  const [residencyStatuses, setResidencyStatuses] = useState<Enums["residency_status"][]>([])
+  const [downPaymentSources, setDownPaymentSources] = useState<Enums["down_payment_source"][]>([])
+  const [assetsLiquidValue, setAssetsLiquidValue] = useState("")
+  const [assetsTotalValue, setAssetsTotalValue] = useState("")
+  const [transunionBeingUsed, setTransunionBeingUsed] = useState(false)
+  // Starts checked: a fresh form has all 4 notes empty. Auto-recomputed on note edits (see onNoteChange).
+  const [noLenderExceptionsRequired, setNoLenderExceptionsRequired] = useState(true)
   const [creditNotes, setCreditNotes] = useState("")
   const [qualifyingNotes, setQualifyingNotes] = useState("") // income notes
   const [downPaymentNotes, setDownPaymentNotes] = useState("")
@@ -176,6 +205,8 @@ export default function CreateDealPage() {
         setOccupancyType(input.occupancy ?? "")
         setTransactionPurpose(input.purpose ?? "")
         setTransactionType(input.transactionType ?? "")
+        setMarriedOrCommonLaw(!!input.marriedOrCommonLaw)
+        setSpouseNotOnApplication(!!input.spouseNotOnApplication)
         setClosingDate(input.closingDate ?? "")
         setIsFlexible(!!input.closingDateFlexible)
         setCofDate(input.cofDate ?? "")
@@ -201,17 +232,23 @@ export default function CreateDealPage() {
         setBridgeLoanNeeded(!!input.bridgeLoanNeeded)
         setPurchasePlusImprovements(!!input.purchasePlusImprovements)
         setNetworthProgram(!!input.networthProgram)
+        setReverseMortgage(!!input.reverseMortgage)
         setCreditScore(input.primaryCreditScore != null ? String(input.primaryCreditScore) : "")
         setCoBorrowerCreditScore(input.coBorrowerCreditScore != null ? String(input.coBorrowerCreditScore) : "")
-        setCreditIssue(input.creditIssue ?? "")
+        setCreditIssues(input.creditIssues ?? [])
         setIncomeTypes(input.incomeTypes ?? [])
         setGds(input.gds != null ? String(input.gds) : "")
         setTds(input.tds != null ? String(input.tds) : "")
         setForeignIncomeCountry(input.foreignIncomeCountry ?? "")
         setOwnsOtherProperties(!!input.ownsOtherProperties)
         setDoorCount(input.doorCount != null ? String(input.doorCount) : "")
-        setResidencyStatus(input.residencyStatuses?.[0] ?? "")
-        setDownPaymentSource(input.downPaymentSource ?? "")
+        setDoorTitlesCount(input.doorTitlesCount != null ? String(input.doorTitlesCount) : "")
+        setResidencyStatuses(input.residencyStatuses ?? [])
+        setDownPaymentSources(input.downPaymentSources ?? [])
+        setAssetsLiquidValue(input.assetsLiquidValue != null ? String(Math.round(Number(input.assetsLiquidValue))) : "")
+        setAssetsTotalValue(input.assetsTotalValue != null ? String(Math.round(Number(input.assetsTotalValue))) : "")
+        setTransunionBeingUsed(!!input.transunionBeingUsed)
+        setNoLenderExceptionsRequired(!!input.noLenderExceptionsRequired)
         setCreditNotes(input.creditNotes ?? "")
         setQualifyingNotes(input.incomeNotes ?? "")
         setDownPaymentNotes(input.downPaymentNotes ?? "")
@@ -235,6 +272,15 @@ export default function CreateDealPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // "No lender exceptions required" auto-checks itself whenever all 4 notes sections are empty
+  // (still user-togglable — e.g. to manually uncheck it even with empty notes). Recomputed only on
+  // USER edits to a note — not in an effect — so resuming a draft keeps its saved checkbox value
+  // instead of overwriting it with the recomputation.
+  function onNoteChange(setter: (v: string) => void, value: string, otherNotes: string[]) {
+    setter(value)
+    setNoLenderExceptionsRequired(!value.trim() && otherNotes.every((n) => !n.trim()))
+  }
+
   const sections: { id: Section; label: string; icon: React.ReactNode }[] = [
     { id: "client", label: t("secClient"), icon: <User className="h-4 w-4" /> },
     { id: "deal", label: t("secDeal"), icon: <FileText className="h-4 w-4" /> },
@@ -250,6 +296,8 @@ export default function CreateDealPage() {
       occupancy: occupancyType || null,
       purpose: transactionPurpose || null,
       transactionType: transactionType || null,
+      marriedOrCommonLaw,
+      spouseNotOnApplication: marriedOrCommonLaw ? spouseNotOnApplication : false,
       closingDate: closingDate,
       closingDateFlexible: isFlexible,
       cofDate: cofDate,
@@ -275,16 +323,22 @@ export default function CreateDealPage() {
       bridgeLoanNeeded,
       purchasePlusImprovements,
       networthProgram,
+      reverseMortgage,
       primaryCreditScore: num(creditScore),
       coBorrowerCreditScore: num(coBorrowerCreditScore),
-      creditIssue: creditIssue || null,
+      creditIssues,
       incomeTypes,
       gds: num(gds),
       tds: num(tds),
       ownsOtherProperties,
       doorCount: ownsOtherProperties ? num(doorCount) : null,
-      residencyStatuses: residencyStatus ? [residencyStatus] : [],
-      downPaymentSource: downPaymentSource || null,
+      doorTitlesCount: ownsOtherProperties ? num(doorTitlesCount) : null,
+      residencyStatuses,
+      downPaymentSources,
+      assetsLiquidValue: networthProgram ? num(assetsLiquidValue) : null,
+      assetsTotalValue: networthProgram ? num(assetsTotalValue) : null,
+      transunionBeingUsed,
+      noLenderExceptionsRequired,
       foreignIncomeCountry,
       creditNotes,
       incomeNotes: qualifyingNotes,
@@ -318,8 +372,13 @@ export default function CreateDealPage() {
       case "deal":
         return !!closingDate && !!mortgageProduct && !!mortgagePosition && !!loanAmount.trim() && !!ltv.trim()
           && !!amortization.trim() && (!previouslyDeclined || !!previouslyDeclinedReason.trim())
-      case "qualifying":
-        return !!creditScore.trim() && !!gds.trim() && !!tds.trim() && !!residencyStatus
+      case "qualifying": {
+        const needsForeignCountry = downPaymentSources.includes("foreign_funds") || incomeTypes.includes("foreign_income")
+        return !!creditScore.trim() && !!gds.trim() && !!tds.trim() && residencyStatuses.length > 0
+          && (!(marriedOrCommonLaw && spouseNotOnApplication) || !!creditNotes.trim())
+          && (!networthProgram || (!!assetsLiquidValue.trim() && !!assetsTotalValue.trim()))
+          && (!needsForeignCountry || !!foreignIncomeCountry.trim())
+      }
       case "property":
         return !!city.trim() && !!province && !!location && !!propertyValue.trim() && !!squareFootage.trim() && !!dwellingType
     }
@@ -329,14 +388,16 @@ export default function CreateDealPage() {
   const hasAnyData =
     [clientFirstName, clientLastName, closingDate, cofDate, loanAmount, ltv, amortization, creditScore,
       coBorrowerCreditScore, gds, tds, foreignIncomeCountry, creditNotes, qualifyingNotes, downPaymentNotes,
-      propertyAddress, city, propertyValue, squareFootage, acres, propertyNotes]
+      propertyAddress, city, propertyValue, squareFootage, acres, propertyNotes,
+      doorTitlesCount, assetsLiquidValue, assetsTotalValue]
       .some((v) => v.trim() !== "") ||
-    [occupancyType, transactionPurpose, transactionType, mortgageProduct, mortgagePosition, creditIssue,
-      residencyStatus, downPaymentSource, province, location, dwellingType].some((v) => v !== "") ||
-    incomeTypes.length > 0 ||
+    [occupancyType, transactionPurpose, transactionType, mortgageProduct, mortgagePosition,
+      province, location, dwellingType].some((v) => v !== "") ||
+    incomeTypes.length > 0 || residencyStatuses.length > 0 || creditIssues.length > 0 || downPaymentSources.length > 0 ||
     [isFlexible, isInsured, previouslyDeclined, firstTimeBuyer, newToCanada, medicalPrograms, cashback,
       collateralTransfer, firstAndHeloc, heloc, fixedSecond, cosignorOccupying, cosignorNotOccupying, guarantor,
-      bridgeLoanNeeded, purchasePlusImprovements, networthProgram, ownsOtherProperties, preQualification,
+      bridgeLoanNeeded, purchasePlusImprovements, networthProgram, reverseMortgage, marriedOrCommonLaw,
+      transunionBeingUsed, ownsOtherProperties, preQualification,
       newConstruction, recreationalProperty, hobbyFarm, hasWell, hasSeptic].some(Boolean)
 
   /** Inline error: a required field is empty AND the user already tried to leave/submit this step. */
@@ -578,6 +639,37 @@ export default function CreateDealPage() {
                   </div>
                 </div>
 
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="marriedOrCommonLaw"
+                      checked={marriedOrCommonLaw}
+                      onCheckedChange={(checked) => setMarriedOrCommonLaw(checked as boolean)}
+                    />
+                    <Label htmlFor="marriedOrCommonLaw" className="text-sm font-normal cursor-pointer">
+                      {t("marriedOrCommonLaw")}
+                    </Label>
+                  </div>
+                  {marriedOrCommonLaw && (
+                    <div className="pl-6 space-y-2">
+                      <p className="text-sm text-muted-foreground">{t("spouseOnApplicationQuestion")}</p>
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          id="spouseNotOnApplication"
+                          checked={spouseNotOnApplication}
+                          onCheckedChange={(checked) => setSpouseNotOnApplication(checked as boolean)}
+                        />
+                        <Label htmlFor="spouseNotOnApplication" className="text-sm font-normal cursor-pointer">
+                          {t("checkIfNo")}
+                        </Label>
+                      </div>
+                      {spouseNotOnApplication && (
+                        <p className="text-sm text-muted-foreground">{t("spouseNotOnApplicationHint")}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
                 <div className="flex justify-between pt-4 border-t border-border">
                   <span />
                   <div className="flex gap-3">
@@ -770,6 +862,7 @@ export default function CreateDealPage() {
                         ["medicalPrograms", medicalPrograms, setMedicalPrograms, "medicalProfessional"],
                         ["purchasePlusImprovements", purchasePlusImprovements, setPurchasePlusImprovements, "purchasePlusImprovements"],
                         ["cosignorOccupying", cosignorOccupying, setCosignorOccupying, "cosignorOccupying"],
+                        ["reverseMortgage", reverseMortgage, setReverseMortgage, "reverseMortgage"],
                       ] as [string, boolean, (v: boolean) => void, string][]
                     ).map(([id, checked, set, labelKey]) => (
                       <div key={id} className="flex items-center gap-2">
@@ -838,27 +931,25 @@ export default function CreateDealPage() {
                 </div>
 
                 {/* Credit Issues on its own row — the label + hint need the full width (was cramped in a 3-col grid). */}
-                <div className="space-y-2">
-                  <Label htmlFor="creditIssue">
-                    {t("creditIssues")}{" "}
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">
+                    {t("creditIssuesMulti")}{" "}
                     <span className="font-normal text-xs text-muted-foreground">{t("creditIssuesHint")}</span>
                   </Label>
-                  <Select
-                    value={creditIssue}
-                    onValueChange={(v) => setCreditIssue(v === CLEAR ? "" : (v as Enums["credit_issue"]))}
-                  >
-                    <SelectTrigger id="creditIssue" className="w-full bg-muted/50">
-                      <SelectValue placeholder={t("selectIfApplicable")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {creditIssue && (
-                        <SelectItem value={CLEAR} className="text-muted-foreground">{t("clearSelection")}</SelectItem>
-                      )}
-                      {CREDIT_ISSUE_OPTIONS.map((o) => (
-                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {CREDIT_ISSUE_OPTIONS.map((o) => (
+                      <div key={o.value} className="flex items-center gap-2">
+                        <Checkbox
+                          id={`credit-issue-${o.value}`}
+                          checked={creditIssues.includes(o.value)}
+                          onCheckedChange={() => setCreditIssues((prev) => toggleIn(prev, o.value))}
+                        />
+                        <Label htmlFor={`credit-issue-${o.value}`} className="text-sm font-normal cursor-pointer leading-tight">
+                          {o.label}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="space-y-3">
@@ -881,7 +972,10 @@ export default function CreateDealPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="gds">{t("gds")}<Req /></Label>
+                    <Label htmlFor="gds">
+                      {t("gds")}<Req />
+                      <InfoHint title={t("infoGdsTitle")} text={t("infoGds")} ariaLabel={t("infoButtonLabel")} />
+                    </Label>
                     <div className="relative">
                       <Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
@@ -898,7 +992,10 @@ export default function CreateDealPage() {
                     <FieldError show={invalid("qualifying", gds)} />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="tds">{t("tds")}<Req /></Label>
+                    <Label htmlFor="tds">
+                      {t("tds")}<Req />
+                      <InfoHint title={t("infoTdsTitle")} text={t("infoTds")} ariaLabel={t("infoButtonLabel")} />
+                    </Label>
                     <div className="relative">
                       <Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
@@ -916,51 +1013,96 @@ export default function CreateDealPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">{t("residencyStatusMulti")}</Label>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {RESIDENCY_STATUS_OPTIONS.map((o) => (
+                      <div key={o.value} className="flex items-center gap-2">
+                        <Checkbox
+                          id={`residency-${o.value}`}
+                          checked={residencyStatuses.includes(o.value)}
+                          onCheckedChange={() => setResidencyStatuses((prev) => toggleIn(prev, o.value))}
+                        />
+                        <Label htmlFor={`residency-${o.value}`} className="text-sm font-normal cursor-pointer leading-tight">
+                          {o.label}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                  <FieldError show={invalid("qualifying", residencyStatuses.length > 0)} />
+                </div>
+
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">{t("downPaymentSourceMulti")}</Label>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {DOWN_PAYMENT_SOURCE_OPTIONS.map((o) => (
+                      <div key={o.value} className="flex items-center gap-2">
+                        <Checkbox
+                          id={`down-payment-source-${o.value}`}
+                          checked={downPaymentSources.includes(o.value)}
+                          onCheckedChange={() => setDownPaymentSources((prev) => toggleIn(prev, o.value))}
+                        />
+                        <Label htmlFor={`down-payment-source-${o.value}`} className="text-sm font-normal cursor-pointer leading-tight">
+                          {o.label}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="foreignIncomeCountry">{t("foreignIncomeCountry")}</Label>
+                    <Label htmlFor="foreignIncomeCountry">
+                      {t("foreignIncomeCountry")}
+                      {(downPaymentSources.includes("foreign_funds") || incomeTypes.includes("foreign_income")) && <Req />}
+                    </Label>
                     <Input
                       id="foreignIncomeCountry"
                       placeholder={t("foreignIncomeCountryPlaceholder")}
                       value={foreignIncomeCountry}
                       onChange={(e) => setForeignIncomeCountry(e.target.value)}
-                      className="bg-muted/50"
+                      className={`bg-muted/50 ${errCls(invalid("qualifying", !(downPaymentSources.includes("foreign_funds") || incomeTypes.includes("foreign_income")) || foreignIncomeCountry))}`}
                     />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="residencyStatus">{t("residencyStatus")}<Req /></Label>
-                    <Select value={residencyStatus} onValueChange={(v) => setResidencyStatus(v as Enums["residency_status"])}>
-                      <SelectTrigger id="residencyStatus" className={`w-full bg-muted/50 ${errCls(invalid("qualifying", residencyStatus))}`}>
-                        <SelectValue placeholder={t("selectStatus")} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {RESIDENCY_STATUS_OPTIONS.map((o) => (
-                          <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FieldError show={invalid("qualifying", residencyStatus)} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="downPaymentSource">{t("downPaymentSource")}</Label>
-                    <Select
-                      value={downPaymentSource}
-                      onValueChange={(v) => setDownPaymentSource(v === CLEAR ? "" : (v as Enums["down_payment_source"]))}
-                    >
-                      <SelectTrigger id="downPaymentSource" className="w-full bg-muted/50">
-                        <SelectValue placeholder={t("selectSource")} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {downPaymentSource && (
-                          <SelectItem value={CLEAR} className="text-muted-foreground">{t("clearSelection")}</SelectItem>
-                        )}
-                        {DOWN_PAYMENT_SOURCE_OPTIONS.map((o) => (
-                          <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <FieldError show={invalid("qualifying", !(downPaymentSources.includes("foreign_funds") || incomeTypes.includes("foreign_income")) || foreignIncomeCountry)} />
                   </div>
                 </div>
+
+                {networthProgram && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="assetsLiquidValue">{t("assetsLiquidValue")}<Req /></Label>
+                      <div className="relative">
+                        <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="assetsLiquidValue"
+                          type="text"
+                          inputMode="numeric"
+                          placeholder={t("assetsLiquidValuePlaceholder")}
+                          value={groupThousands(assetsLiquidValue)}
+                          onChange={(e) => setAssetsLiquidValue(e.target.value.replace(/[^\d]/g, ""))}
+                          className={`pl-10 bg-muted/50 ${errCls(invalid("qualifying", assetsLiquidValue))}`}
+                        />
+                      </div>
+                      <FieldError show={invalid("qualifying", assetsLiquidValue)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="assetsTotalValue">{t("assetsTotalValue")}<Req /></Label>
+                      <div className="relative">
+                        <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="assetsTotalValue"
+                          type="text"
+                          inputMode="numeric"
+                          placeholder={t("assetsTotalValuePlaceholder")}
+                          value={groupThousands(assetsTotalValue)}
+                          onChange={(e) => setAssetsTotalValue(e.target.value.replace(/[^\d]/g, ""))}
+                          className={`pl-10 bg-muted/50 ${errCls(invalid("qualifying", assetsTotalValue))}`}
+                        />
+                      </div>
+                      <FieldError show={invalid("qualifying", assetsTotalValue)} />
+                    </div>
+                  </div>
+                )}
 
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">
@@ -974,49 +1116,83 @@ export default function CreateDealPage() {
                     </Label>
                   </div>
                   {ownsOtherProperties && (
-                    <div className="space-y-2">
-                      <Label htmlFor="doorCount">{t("howManyDoors")}</Label>
-                      <Input
-                        id="doorCount"
-                        type="number"
-                        placeholder={t("howManyDoorsPlaceholder")}
-                        value={doorCount}
-                        onChange={(e) => setDoorCount(e.target.value)}
-                        className="bg-muted/50"
-                      />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <Label htmlFor="doorCount">{t("howManyDoors")}</Label>
+                        <Input
+                          id="doorCount"
+                          type="number"
+                          placeholder={t("howManyDoorsPlaceholder")}
+                          value={doorCount}
+                          onChange={(e) => setDoorCount(e.target.value)}
+                          className="bg-muted/50"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="doorTitlesCount">{t("doorTitlesCount")}</Label>
+                        <Input
+                          id="doorTitlesCount"
+                          type="number"
+                          placeholder={t("doorTitlesCountPlaceholder")}
+                          value={doorTitlesCount}
+                          onChange={(e) => setDoorTitlesCount(e.target.value)}
+                          className="bg-muted/50"
+                        />
+                      </div>
                     </div>
                   )}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="creditNotes">{t("creditNotes")}</Label>
+                  <Label htmlFor="creditNotes">
+                    {t("creditNotes")}
+                    {marriedOrCommonLaw && spouseNotOnApplication && <Req />}
+                    <InfoHint title={t("infoCreditNotesTitle")} text={t("infoCreditNotes")} ariaLabel={t("infoButtonLabel")} />
+                  </Label>
                   <Textarea
                     id="creditNotes"
                     placeholder={t("creditNotesPlaceholder")}
                     value={creditNotes}
-                    onChange={(e) => setCreditNotes(e.target.value)}
-                    className="bg-muted/50 min-h-20"
+                    onChange={(e) => onNoteChange(setCreditNotes, e.target.value, [qualifyingNotes, downPaymentNotes, propertyNotes])}
+                    className={`bg-muted/50 min-h-20 ${errCls(invalid("qualifying", !(marriedOrCommonLaw && spouseNotOnApplication) || creditNotes))}`}
                   />
+                  <FieldError show={invalid("qualifying", !(marriedOrCommonLaw && spouseNotOnApplication) || creditNotes)} />
+                  <div className="flex items-center gap-2 pt-1">
+                    <Checkbox
+                      id="transunionBeingUsed"
+                      checked={transunionBeingUsed}
+                      onCheckedChange={(checked) => setTransunionBeingUsed(checked as boolean)}
+                    />
+                    <Label htmlFor="transunionBeingUsed" className="text-sm font-normal cursor-pointer leading-tight">
+                      {t("transunionBeingUsed")}
+                    </Label>
+                  </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="qualifyingNotes">{t("incomeNotes")}</Label>
+                  <Label htmlFor="qualifyingNotes">
+                    {t("incomeNotes")}
+                    <InfoHint title={t("infoIncomeNotesTitle")} text={t("infoIncomeNotes")} ariaLabel={t("infoButtonLabel")} />
+                  </Label>
                   <Textarea
                     id="qualifyingNotes"
                     placeholder={t("incomeNotesPlaceholder")}
                     value={qualifyingNotes}
-                    onChange={(e) => setQualifyingNotes(e.target.value)}
+                    onChange={(e) => onNoteChange(setQualifyingNotes, e.target.value, [creditNotes, downPaymentNotes, propertyNotes])}
                     className="bg-muted/50 min-h-20"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="downPaymentNotes">{t("downPaymentNotes")}</Label>
+                  <Label htmlFor="downPaymentNotes">
+                    {t("downPaymentNotes")}
+                    <InfoHint title={t("infoDownPaymentNotesTitle")} text={t("infoDownPaymentNotes")} ariaLabel={t("infoButtonLabel")} />
+                  </Label>
                   <Textarea
                     id="downPaymentNotes"
                     placeholder={t("downPaymentNotesPlaceholder")}
                     value={downPaymentNotes}
-                    onChange={(e) => setDownPaymentNotes(e.target.value)}
+                    onChange={(e) => onNoteChange(setDownPaymentNotes, e.target.value, [creditNotes, qualifyingNotes, propertyNotes])}
                     className="bg-muted/50 min-h-20"
                   />
                 </div>
@@ -1167,12 +1343,15 @@ export default function CreateDealPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="propertyNotes">{t("generalNotes")}</Label>
+                  <Label htmlFor="propertyNotes">
+                    {t("generalNotes")}
+                    <InfoHint title={t("infoGeneralNotesTitle")} text={t("infoGeneralNotes")} ariaLabel={t("infoButtonLabel")} />
+                  </Label>
                   <Textarea
                     id="propertyNotes"
                     placeholder={t("generalNotesPlaceholder")}
                     value={propertyNotes}
-                    onChange={(e) => setPropertyNotes(e.target.value)}
+                    onChange={(e) => onNoteChange(setPropertyNotes, e.target.value, [creditNotes, qualifyingNotes, downPaymentNotes])}
                     className="bg-muted/50 min-h-24"
                   />
                 </div>
@@ -1196,6 +1375,17 @@ export default function CreateDealPage() {
                       </div>
                     ))}
                   </div>
+                </div>
+
+                <div className="flex items-center gap-2 pt-2">
+                  <Checkbox
+                    id="noLenderExceptionsRequired"
+                    checked={noLenderExceptionsRequired}
+                    onCheckedChange={(checked) => setNoLenderExceptionsRequired(checked as boolean)}
+                  />
+                  <Label htmlFor="noLenderExceptionsRequired" className="text-sm font-normal cursor-pointer">
+                    {t("noLenderExceptionsRequired")}
+                  </Label>
                 </div>
 
                 <div className="flex justify-between pt-4 border-t border-border">

@@ -44,17 +44,25 @@ export type DealDraftInput = {
   bridgeLoanNeeded?: boolean
   purchasePlusImprovements?: boolean
   networthProgram?: boolean
+  marriedOrCommonLaw?: boolean
+  spouseNotOnApplication?: boolean
+  reverseMortgage?: boolean
   // qualifying
   primaryCreditScore?: number | null
   coBorrowerCreditScore?: number | null
-  creditIssue?: Enums["credit_issue"] | null
+  creditIssues?: Enums["credit_issue"][]
   incomeTypes?: Enums["income_type"][]
   gds?: number | null
   tds?: number | null
   ownsOtherProperties?: boolean
   doorCount?: number | null
+  doorTitlesCount?: number | null
   residencyStatuses?: Enums["residency_status"][]
-  downPaymentSource?: Enums["down_payment_source"] | null
+  downPaymentSources?: Enums["down_payment_source"][]
+  assetsLiquidValue?: number | null
+  assetsTotalValue?: number | null
+  transunionBeingUsed?: boolean
+  noLenderExceptionsRequired?: boolean
   foreignIncomeCountry?: string | null
   creditNotes?: string | null
   incomeNotes?: string | null
@@ -109,14 +117,20 @@ function toDealColumns(input: DealDraftInput): Omit<DealInsert, "broker_id" | "b
     bridge_loan_needed: input.bridgeLoanNeeded ?? false,
     purchase_plus_improvements: input.purchasePlusImprovements ?? false,
     networth_program: input.networthProgram ?? false,
+    married_or_common_law: input.marriedOrCommonLaw ?? false,
+    spouse_not_on_application: input.spouseNotOnApplication ?? false,
+    reverse_mortgage: input.reverseMortgage ?? false,
     primary_credit_score: input.primaryCreditScore ?? null,
     co_borrower_credit_score: input.coBorrowerCreditScore ?? null,
-    credit_issue: input.creditIssue ?? null,
     gds: input.gds ?? null,
     tds: input.tds ?? null,
     owns_other_properties: input.ownsOtherProperties ?? false,
     door_count: input.doorCount ?? null,
-    down_payment_source: input.downPaymentSource ?? null,
+    door_titles_count: input.doorTitlesCount ?? null,
+    assets_liquid_value: input.assetsLiquidValue ?? null,
+    assets_total_value: input.assetsTotalValue ?? null,
+    transunion_being_used: input.transunionBeingUsed ?? false,
+    no_lender_exceptions_required: input.noLenderExceptionsRequired ?? false,
     foreign_income_country: input.foreignIncomeCountry || null,
     credit_notes: input.creditNotes || null,
     income_notes: input.incomeNotes || null,
@@ -205,6 +219,20 @@ async function replaceListJunctions(supabase: DB, dealId: string, input: DealDra
       .insert(residency.map((residency) => ({ deal_id: dealId, residency })))
     if (error) throw new Error(error.message)
   }
+  const creditIssues = input.creditIssues ?? []
+  if (creditIssues.length) {
+    const { error } = await supabase
+      .from("deal_credit_issues")
+      .insert(creditIssues.map((credit_issue) => ({ deal_id: dealId, credit_issue })))
+    if (error) throw new Error(error.message)
+  }
+  const downPaymentSources = input.downPaymentSources ?? []
+  if (downPaymentSources.length) {
+    const { error } = await supabase
+      .from("deal_down_payment_sources")
+      .insert(downPaymentSources.map((down_payment_source) => ({ deal_id: dealId, down_payment_source })))
+    if (error) throw new Error(error.message)
+  }
 }
 
 /** Transition a draft to submitted (assigns DEAL-{year}-{n}, fires filter-match notifications). */
@@ -225,7 +253,7 @@ export async function getDealDraft(supabase: DB, dealId: string): Promise<{ inpu
   const { data: d, error } = await supabase
     .from("deals")
     .select(
-      "*, deal_identities(borrower_first_name, borrower_last_name, property_address), deal_income_types(income_type), deal_residency_statuses(residency)",
+      "*, deal_identities(borrower_first_name, borrower_last_name, property_address), deal_income_types(income_type), deal_residency_statuses(residency), deal_credit_issues(credit_issue), deal_down_payment_sources(down_payment_source)",
     )
     .eq("id", dealId)
     .single()
@@ -262,16 +290,24 @@ export async function getDealDraft(supabase: DB, dealId: string): Promise<{ inpu
     bridgeLoanNeeded: d.bridge_loan_needed,
     purchasePlusImprovements: d.purchase_plus_improvements,
     networthProgram: d.networth_program,
+    marriedOrCommonLaw: d.married_or_common_law,
+    spouseNotOnApplication: d.spouse_not_on_application,
+    reverseMortgage: d.reverse_mortgage,
     primaryCreditScore: d.primary_credit_score,
     coBorrowerCreditScore: d.co_borrower_credit_score,
-    creditIssue: d.credit_issue,
+    creditIssues: (d.deal_credit_issues ?? []).map((x) => x.credit_issue),
     incomeTypes: (d.deal_income_types ?? []).map((x) => x.income_type),
     gds: d.gds,
     tds: d.tds,
     ownsOtherProperties: d.owns_other_properties,
     doorCount: d.door_count,
+    doorTitlesCount: d.door_titles_count,
     residencyStatuses: (d.deal_residency_statuses ?? []).map((x) => x.residency),
-    downPaymentSource: d.down_payment_source,
+    downPaymentSources: (d.deal_down_payment_sources ?? []).map((x) => x.down_payment_source),
+    assetsLiquidValue: d.assets_liquid_value,
+    assetsTotalValue: d.assets_total_value,
+    transunionBeingUsed: d.transunion_being_used,
+    noLenderExceptionsRequired: d.no_lender_exceptions_required,
     foreignIncomeCountry: d.foreign_income_country,
     creditNotes: d.credit_notes,
     incomeNotes: d.income_notes,
@@ -320,6 +356,8 @@ export async function updateDealDraft(supabase: DB, dealId: string, input: DealD
   // List junctions: wipe + re-insert.
   await supabase.from("deal_income_types").delete().eq("deal_id", dealId)
   await supabase.from("deal_residency_statuses").delete().eq("deal_id", dealId)
+  await supabase.from("deal_credit_issues").delete().eq("deal_id", dealId)
+  await supabase.from("deal_down_payment_sources").delete().eq("deal_id", dealId)
   await replaceListJunctions(supabase, dealId, input)
 }
 
@@ -366,35 +404,54 @@ export type BrokerDealListItem = {
   closingDate: string
   amount: number
   offersCount: number
+  /** Which broker submitted the deal — only meaningfully populated for a broker-admin's brokerage-wide view. */
+  submittedByBrokerId: string
+  submittedByName: string
 }
 
 /**
- * The signed-in broker's own deals (all statuses incl. drafts), newest first.
- * deal_identities is embedded (one-to-one on deal_id) — visible here only because the
- * broker owns the deal; offers(count) reflects offers on their deals (offers_deal_broker policy).
+ * The signed-in broker's deals, newest first. A plain broker sees only their own (all statuses incl.
+ * drafts). A broker-admin (`is_broker_admin`) sees every deal in their brokerage (Round 3: "add a field
+ * to show who the broker is") — RLS (`deals_brokerage_admin`) already allows the read; this only needed
+ * to stop filtering the query down to `broker_id = self`. `isBrokerAdmin` tells the page whether to show
+ * the "Submitted by" column (irrelevant noise for a plain broker viewing only their own deals).
  */
-export async function listBrokerDeals(supabase: DB): Promise<BrokerDealListItem[]> {
+export async function listBrokerDeals(
+  supabase: DB,
+): Promise<{ deals: BrokerDealListItem[]; isBrokerAdmin: boolean }> {
   const {
     data: { user },
     error: userErr,
   } = await supabase.auth.getUser()
   if (userErr || !user) throw new Error("You must be signed in.")
 
+  const { data: profile, error: profileErr } = await supabase
+    .from("profiles")
+    .select("is_broker_admin, brokerage_id")
+    .eq("id", user.id)
+    .single()
+  if (profileErr) throw new Error(profileErr.message)
+  const isBrokerAdmin = !!profile.is_broker_admin
+
   // Disambiguate the offers embed: `deals` has two FKs to `offers` (offers.deal_id and
   // deals.accepted_offer_id), so PostgREST needs the explicit constraint name for the count.
-  const { data, error } = await supabase
+  let query = supabase
     .from("deals")
     .select(
-      "id, deal_number, status, created_at, closing_date, loan_amount, deal_identities(borrower_first_name, borrower_last_name), offers!offers_deal_id_fkey(count)",
+      "id, deal_number, status, created_at, closing_date, loan_amount, broker_id, deal_identities(borrower_first_name, borrower_last_name), offers!offers_deal_id_fkey(count), profiles!deals_broker_id_fkey(first_name, last_name)",
     )
-    .eq("broker_id", user.id)
     .order("created_at", { ascending: false })
+  query = isBrokerAdmin && profile.brokerage_id
+    ? query.eq("brokerage_id", profile.brokerage_id)
+    : query.eq("broker_id", user.id)
+  const { data, error } = await query
   if (error) throw new Error(error.message)
 
-  return (data ?? []).map((d) => {
+  const deals = (data ?? []).map((d) => {
     const ident = Array.isArray(d.deal_identities) ? d.deal_identities[0] : d.deal_identities
     const name = [ident?.borrower_first_name, ident?.borrower_last_name].filter(Boolean).join(" ")
     const offersCount = Array.isArray(d.offers) ? (d.offers[0]?.count ?? 0) : 0
+    const broker = Array.isArray(d.profiles) ? d.profiles[0] : d.profiles
     return {
       id: d.id,
       dealNumber: d.deal_number ?? "—",
@@ -404,8 +461,11 @@ export async function listBrokerDeals(supabase: DB): Promise<BrokerDealListItem[
       closingDate: d.closing_date ?? "",
       amount: Number(d.loan_amount ?? 0),
       offersCount,
+      submittedByBrokerId: d.broker_id,
+      submittedByName: [broker?.first_name, broker?.last_name].filter(Boolean).join(" ") || "—",
     }
   })
+  return { deals, isBrokerAdmin }
 }
 
 // ── Lender: open-deals list ───────────────────────────────────────────────────
@@ -427,6 +487,20 @@ export const PRODUCT_TERM_YEARS: Record<Enums["mortgage_product"], number> = {
   "5_year_fixed": 5, "5_year_arm_vrm": 5, "3_year_fixed": 3, "3_year_arm_vrm": 3,
   "4_year_fixed": 4, "2_year_fixed": 2, "1_year_fixed": 1, "6_month_convertible": 0.5,
   open: 0, "7_year_fixed": 7, "10_year_fixed": 10,
+}
+
+/**
+ * Platform bps by term — mirrors the SQL `platform_bps_for()` (migration 02) for a client-side LIVE
+ * preview in the offer dialog: ≤3y → 3 bps, 4y → 4 bps, else → 5 bps. "Open" has no term in the SQL
+ * (product_years('open') is null, which falls through the CASE to the else branch), so it must NOT
+ * reuse PRODUCT_TERM_YEARS' display-only `open: 0` — that would wrongly match "≤3y" here.
+ */
+export function platformBpsFor(product: Enums["mortgage_product"]): number {
+  if (product === "open") return 5
+  const years = PRODUCT_TERM_YEARS[product]
+  if (years <= 3) return 3
+  if (years === 4) return 4
+  return 5
 }
 
 /**
@@ -461,14 +535,14 @@ export type LenderDealListItem = {
   previouslyDeclinedReason: string | null
   // qualifying information
   primaryCreditScore: number | null
-  creditIssue: Enums["credit_issue"] | null
+  creditIssues: Enums["credit_issue"][]
   coBorrowerCreditScore: number | null
   incomeTypes: Enums["income_type"][]
   gds: number | null
   tds: number | null
   foreignIncomeCountry: string | null
   residencyStatuses: Enums["residency_status"][]
-  downPaymentSource: Enums["down_payment_source"] | null
+  downPaymentSources: Enums["down_payment_source"][]
   ownsOtherProperties: boolean
   doorCount: number | null
   creditNotes: string | null
@@ -513,14 +587,14 @@ function mapOpenDealRow(d: OpenDealRow): LenderDealListItem {
     previouslyDeclined: d.previously_declined ?? false,
     previouslyDeclinedReason: d.previously_declined_reason,
     primaryCreditScore: d.primary_credit_score,
-    creditIssue: d.credit_issue,
+    creditIssues: d.credit_issues ?? [],
     coBorrowerCreditScore: d.co_borrower_credit_score,
     incomeTypes: d.income_types ?? [],
     gds: d.gds === null ? null : Number(d.gds),
     tds: d.tds === null ? null : Number(d.tds),
     foreignIncomeCountry: d.foreign_income_country,
     residencyStatuses: d.residency_statuses ?? [],
-    downPaymentSource: d.down_payment_source,
+    downPaymentSources: d.down_payment_sources ?? [],
     ownsOtherProperties: d.owns_other_properties ?? false,
     doorCount: d.door_count,
     creditNotes: d.credit_notes,

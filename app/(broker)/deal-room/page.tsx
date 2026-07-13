@@ -47,6 +47,7 @@ export default function DealRoomPage() {
   const { DEAL_STATUS_LABEL } = useEnums()
 
   const [deals, setDeals] = useState<Deal[]>([])
+  const [isBrokerAdmin, setIsBrokerAdmin] = useState(false)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
 
@@ -61,8 +62,11 @@ export default function DealRoomPage() {
   useEffect(() => {
     let active = true
     listBrokerDeals(supabase)
-      .then((rows) => {
-        if (active) setDeals(rows)
+      .then(({ deals, isBrokerAdmin }) => {
+        if (active) {
+          setDeals(deals)
+          setIsBrokerAdmin(isBrokerAdmin)
+        }
       })
       .catch((err) => {
         if (active) setLoadError(err instanceof Error ? err.message : t('loadError'))
@@ -294,6 +298,9 @@ export default function DealRoomPage() {
                     <tr>
                       <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">{t('colDeal')}</th>
                       <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">{t('colClient')}</th>
+                      {isBrokerAdmin && (
+                        <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">{t('colSubmittedBy')}</th>
+                      )}
                       <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">{t('colStatus')}</th>
                       <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">{t('colCreated')}</th>
                       <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">{t('colClosing')}</th>
@@ -307,6 +314,9 @@ export default function DealRoomPage() {
                       <tr key={deal.id} className="border-b border-border hover:bg-muted/50 transition-colors">
                         <td className="px-6 py-4 text-sm font-medium text-foreground">{deal.dealNumber}</td>
                         <td className="px-6 py-4 text-sm text-foreground">{deal.clientName}</td>
+                        {isBrokerAdmin && (
+                          <td className="px-6 py-4 text-sm text-foreground">{deal.submittedByName}</td>
+                        )}
                         <td className="px-6 py-4 text-sm">
                           <span className={`px-3 py-1 rounded-full text-xs font-medium ${dealStatusStyle(deal.status)}`}>
                             {DEAL_STATUS_LABEL[deal.status]}
