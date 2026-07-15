@@ -247,7 +247,24 @@ junction visibility, and chat are unaffected; other lenders who haven't offered 
 later date orders it last: SECURITY DEFINER `decline_deal(p_deal_id)` that upserts `deal_declines` AND
 drops the lender's `deal_chats` thread [`deal_chats` has no DELETE policy], the single RPC every Decline
 entry point routes through [New Deals/Maturing feeds + messages inbox]; came in the auth-messaging merge —
-**applied to the hosted DB 2026-07-10**).
+**applied to the hosted DB 2026-07-10**) · `36_round3_create_deal_fields` (**Round 3 Phase 1**: adds the new
+`deals` columns [`married_or_common_law`/`spouse_not_on_application`/`reverse_mortgage`/`assets_liquid_value`/
+`assets_total_value`/`door_titles_count`/`transunion_being_used`/`no_lender_exceptions_required`] +
+`offers.lender_fee_pct`; converts **Credit Issues + Down Payment Source from single-select columns to
+multi-select junction tables** `deal_credit_issues`/`deal_down_payment_sources` [RLS-guarded like the existing
+income/residency junctions], **backfills** existing singular values [+ `borrowed_down_payment` → source
+`'borrowed'`] into them, then **drops** `credit_issue`/`down_payment_source`/`borrowed_down_payment`) ·
+`37_round3_feeds_multi_select_and_windows` (rebuilds the four feed RPCs [`open_deals_for_lender`/
+`open_deals_filtered`/`maturing_deals_for_lender`/`maturing_deals_filtered`] to `array_agg` the new
+`credit_issues`/`down_payment_sources` columns instead of the dropped singular ones — `saved_filter_matches`/
+`match_percentage`/`best_match_for` never referenced those two, so unchanged — and moves the Maturing
+New→Maturing boundary to **2 days** [was 4; OQ#18 → New 0–1 / Maturing 2–14 / Expired 15+]) ·
+`38_round3_lender_fee_pct` (wires `lender_fee_pct` through `make_offer`: drops the 8-arg signature, recreates
+the 9-arg with the optional trailing `p_lender_fee_pct`; display-only, never affects the invoice math) ·
+`39_round3_broker_admin_submitter` (`profiles_brokerage_admin_read` RLS policy — `i_am_broker_admin() and
+brokerage_id = my_brokerage()` — so a broker-admin's Deal Room can embed a brokerage-mate's name for the new
+"Submitted By" column). **⚠️ Migrations 36–39 (Round 3 Phase 1) are applied to the STAGING hosted DB
+(2026-07-14) but NOT yet to prod** — they ship to prod when Phase 1 is promoted `staging`→`main`.
 
 **Wired to Supabase (real data + verified):** sign-in (role redirect) · **password reset** (**OTP-code flow**:
 `/forgot-password` is 2-step — email → `resetPasswordForEmail`, then a **6-digit code** + new password →
@@ -395,9 +412,13 @@ read it before touching hosted infra. Current state:
   framework `nextjs`.
 - **Branch/env model**: `staging` = **base dev branch** → Vercel Preview → **staging** Supabase; `main` = prod →
   Production → **prod** Supabase (merge `staging`→`main` ONLY to deploy prod). `NEXT_PUBLIC_*` are build-time.
-- **Status**: **staging fully live + seeded** (`/sign-in` 200; demo accounts `Test1234!`); **prod PENDING** (its
-  Vercel Production env vars + redeploy, functions/secrets/vault/auth — runbook §8). Old dev deployment (Supabase
-  `zyxfsewiejvtnhftnasu` + `loan-link-rho.vercel.app` + GitLab) is pre-migration and being retired.
+- **Status**: **both live.** **prod** live at **`www.lendermatch.ca`** (bring-up 2026-07-11: env vars +
+  functions/secrets/vault/auth + admin `admin@lendermatch.ca` + email channel verified) — currently on the
+  **pre-Phase-1 baseline** (through `decline_deal`). **staging** live + seeded at **`staging.lendermatch.ca`**
+  (`/sign-in` 200; demo accounts `Test1234!`) and now **ahead of prod by Round 3 Phase 1** (migrations 36–39 +
+  the new `contact-us` edge fn, deployed 2026-07-14). **Promoting Phase 1 to prod = merge `staging`→`main`**,
+  then apply 36–39 + deploy `contact-us` to the prod Supabase (runbook §8). Old dev deployment (Supabase
+  `zyxfsewiejvtnhftnasu` + `loan-link-rho.vercel.app` + GitLab) is pre-migration and retired.
 
 The gotchas below still apply (and are folded into the runbook):
 - **Vercel framework preset** is pinned in **`vercel.json`** (`{"framework":"nextjs"}`). Without it the
