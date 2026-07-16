@@ -4,7 +4,14 @@
 `pnpm smoke:quick` suite green (20/20). New migrations: 36 (Create Deal schema fields + Credit
 Issues/Down Payment Source junction tables), 37 (feed RPCs: multi-select columns + 2–14d Maturing
 window), 38 (`make_offer` + `lender_fee_pct`), 39 (`profiles_brokerage_admin_read` RLS policy).
-Proceeding to Phase 2 next.
+
+**Phase 2 (19 h): all buildable items COMPLETE** as of 2026-07-15 — 6 of 8 items landed (`pnpm check`
+green, full `pnpm smoke:quick` suite green 20/20 with functions served); the remaining 2 (rebrand +
+domain connect) stay **blocked on client input** (see Blockers below). New migrations: 40 (edit
+submitted deal until first offer + delete until accepted), 41 (`edit_offer`), 42 (one-step accept —
+`confirm_lender` dropped, switch deletes the invoice + no lender notify), 43 (Round 3 fields as
+saved-filter criteria + filtered-feed params). Migrations 40–43 are applied **locally only** — not yet
+pushed to the staging/prod hosted DBs.
 
 Tracks execution of `docs/LenderMatch_Round3_Change_Request.pdf` (Rev.3, firm 64 h, approved by the
 client in writing on 2026-07-13). Update the checkboxes as items land; keep `CLAUDE.md`'s "Wired /
@@ -54,16 +61,36 @@ because it's the highest-risk/most technical content (documents, AI matching, au
 
 ## Phase 2 — Standard features, acceptance rework & rebrand (19 h)
 
-- [ ] Broker can edit a submitted deal until it has an offer
-- [ ] Submissions/drafts deletable until an offer is accepted (auto-remove from lender portal if submitted)
-- [ ] Offer entry prefill (deal/filter values) + remember-last-response (comments always cleared)
-- [ ] Offers editable until accepted; notify broker on edit
-- [ ] Remove "Confirm Lender": Accept = reveal lender + create invoice + confirm in lender portal, one step
+- [x] Broker can edit a submitted deal until it has an offer — migration 40
+      (`deals_broker_update_submitted_no_offers` + `deal_has_offers()` helper); Deal Room "Edit" action →
+      `/create-deal?edit=<id>`, wizard edit mode saves via `updateSubmittedDeal` (status untouched, deal
+      number kept; Save Draft hidden). Covered in `smoke-delete-draft`.
+- [x] Submissions/drafts deletable until an offer is accepted (auto-remove from lender portal if submitted)
+      — migration 40 (`deals_broker_delete_unaccepted` replaces the draft-only policy; offers/chats cascade);
+      `deleteDeal` replaces `deleteDraft`, Deal Room Delete action for draft/submitted/offer_received with
+      per-case dialog copy.
+- [x] Offer entry prefill (deal/filter values) + remember-last-response (comments always cleared) — the
+      shared MakeOfferDialog seeds the product from the target deal (single-target) and the rest from the
+      lender's remembered last offer (`ll_last_offer` in localStorage, saved on each successful send;
+      comments never remembered).
+- [x] Offers editable until accepted; notify broker on edit — migration 41 (`edit_offer` RPC, pending-only,
+      anti-contact re-scan, identity-safe broker notification); "Edit Offer" action on Submitted Offers
+      reuses MakeOfferDialog in edit mode. Covered in `smoke-offers`.
+- [x] Remove "Confirm Lender": Accept = reveal lender + create invoice + confirm in lender portal, one step
       (supersedes OQ#21). Switch cancels/deletes the invoice + marks portal "Declined" (no lender notify).
-- [ ] Replicate all new Create Deal fields in the lender filter section
+      — migration 42 (`accept_offer(uuid)` one-step, `confirm_lender` dropped, `switch_offer` deletes the
+      invoice [paid invoice blocks] + notifies no one); deal-detail loses the Confirm button (Switch stays
+      until funded/paid), the lender portal maps `switched` → "Declined". Covered in
+      `smoke-offers`/`smoke-switch`.
+- [x] Replicate all new Create Deal fields in the lender filter section — migration 43 (`saved_filters`
+      columns + `saved_filter_matches` + trailing params on `open_deals_filtered`/`maturing_deals_filtered`);
+      Filters sidepanel gains Credit Issues + Down Payment Source exclusion grids, the 4 new "Others" flags,
+      liquid/total asset minimums, max door titles, and a "no exceptions only" checkbox — saved-filter chips
+      created from the panel enforce them too. Covered in `smoke-open-filtered`.
 - [ ] Rebrand Loan Link → LenderMatch™ across app + emails (flip `lib/brand.ts` `BRAND` + logo asset +
-      `invoice-pdf` edge fn `BRAND` — needs the client's logo asset first)
+      `invoice-pdf` edge fn `BRAND` — needs the client's logo asset first) — **BLOCKED on client**
 - [ ] Connect lendermatch.ca domain (Vercel domain + Supabase Auth redirect URLs — needs client's domain access)
+      — **BLOCKED on client**
 
 ## Phase 3 — Heavy features (24 h)
 

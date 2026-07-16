@@ -333,13 +333,39 @@ export async function getDealDraft(supabase: DB, dealId: string): Promise<{ inpu
 
 /** Update an existing deal (draft) in place — deal columns + identity + list junctions. */
 export async function updateDealDraft(supabase: DB, dealId: string, input: DealDraftInput) {
-  const { error } = await supabase.from("deals").update(toDealColumns(input)).eq("id", dealId)
+  await updateDealInPlace(supabase, dealId, input, toDealColumns(input))
+}
+
+/**
+ * Round 3: a broker can edit a SUBMITTED deal until it has an offer. Same in-place update as a
+ * draft, except the status column is NOT sent — the deal stays 'submitted' and keeps its deal
+ * number (RLS `deals_broker_update_submitted_no_offers` enforces owner + submitted + zero offers,
+ * so the moment an offer lands the update is refused).
+ */
+export async function updateSubmittedDeal(supabase: DB, dealId: string, input: DealDraftInput) {
+  const { status: _status, ...cols } = toDealColumns(input)
+  await updateDealInPlace(supabase, dealId, input, cols)
+}
+
+async function updateDealInPlace(
+  supabase: DB,
+  dealId: string,
+  input: DealDraftInput,
+  cols: Partial<Omit<DealInsert, "broker_id" | "brokerage_id">>,
+) {
+  // .select() so an RLS-filtered update (e.g. an offer arrived while editing a submitted deal)
+  // surfaces as an error instead of silently updating nothing and then overwriting the junction
+  // lists below (their write policies are owner-scoped without a status gate).
+  const { data, error } = await supabase.from("deals").update(cols).eq("id", dealId).select("id")
   if (error) throw new Error(error.message)
+  if (!data || data.length === 0) {
+    throw new Error("This deal can no longer be edited (it may have received an offer).")
+  }
 
   // Identity: upsert the single row keyed on deal_id. deal_identities has no DELETE policy
   // (anonymity boundary), so a delete+insert would silently no-op the delete under RLS and then
   // collide on the deal_id primary key ("duplicate key ... deal_identities_pkey"). upsert with
-  // onConflict stays atomic and uses the existing broker INSERT + UPDATE policies (both draft-scoped).
+  // onConflict stays atomic and uses the existing broker INSERT + UPDATE policies.
   if (input.borrowerFirstName || input.borrowerLastName || input.propertyAddress) {
     const { error: e } = await supabase.from("deal_identities").upsert(
       {
@@ -368,12 +394,12 @@ export async function updateAndSubmitDeal(supabase: DB, dealId: string, input: D
 }
 
 /**
- * Delete a DRAFT deal the current broker owns. Guarded to status='draft' in the query so a submitted
- * deal (which carries a deal number and may be visible to lenders) can never be removed this way —
- * deleting submitted deals is a separate Round 3 item. RLS (deals_broker_write, broker-owned) is the
- * backstop; the explicit status filter is the intent. Child rows (identity + junctions) cascade on FK.
+ * Delete a deal the current broker owns — Round 3: drafts AND submissions are deletable until an
+ * offer is ACCEPTED. Deleting a submitted deal automatically removes it from the lender portal
+ * (the row is gone; offers/chats/junctions cascade on FK). RLS (deals_broker_delete_unaccepted,
+ * migration 40) is the backstop; the explicit status filter states the intent.
  */
-export async function deleteDraft(supabase: DB, dealId: string): Promise<void> {
+export async function deleteDeal(supabase: DB, dealId: string): Promise<void> {
   const {
     data: { user },
     error: userErr,
@@ -385,10 +411,12 @@ export async function deleteDraft(supabase: DB, dealId: string): Promise<void> {
     .delete()
     .eq("id", dealId)
     .eq("broker_id", user.id)
-    .eq("status", "draft")
+    .in("status", ["draft", "submitted", "offer_received"])
     .select("id")
   if (error) throw new Error(error.message)
-  if (!data || data.length === 0) throw new Error("Only your own draft deals can be deleted.")
+  if (!data || data.length === 0) {
+    throw new Error("Only your own deals without an accepted offer can be deleted.")
+  }
 }
 
 // ── Broker: own-deals list (Deal Room) ────────────────────────────────────────
@@ -654,6 +682,12 @@ export async function listOpenDealsFiltered(supabase: DB, f: OpenDealFilters): P
     p_income_types_excluded: f.incomeTypesExcluded.length ? f.incomeTypesExcluded : undefined,
     p_residency_statuses_excluded: f.residencyStatusesExcluded.length ? f.residencyStatusesExcluded : undefined,
     p_others_excluded: othersExcludedKeys(f),
+    p_credit_issues_excluded: f.creditIssuesExcluded.length ? f.creditIssuesExcluded : undefined,
+    p_down_payment_sources_excluded: f.downPaymentSourcesExcluded.length ? f.downPaymentSourcesExcluded : undefined,
+    p_assets_liquid_min: f.assetsLiquidMin ?? undefined,
+    p_assets_total_min: f.assetsTotalMin ?? undefined,
+    p_max_door_titles: f.maxDoorTitles ?? undefined,
+    p_require_no_exceptions: f.requireNoExceptions || undefined,
   })
   if (error) throw new Error(error.message)
   return (data ?? []).map(mapOpenDealRow)
@@ -683,6 +717,11 @@ function othersExcludedKeys(f: OpenDealFilters): string[] | undefined {
     [f.excludeHobbyFarm, "hobby_farm"],
     [f.excludeWellWater, "well_water"],
     [f.excludeSeptic, "septic"],
+    // Round 3 flags ride the same deals-column key list (migration 43).
+    [f.excludeReverseMortgage, "reverse_mortgage"],
+    [f.excludeMarriedOrCommonLaw, "married_or_common_law"],
+    [f.excludeSpouseNotOnApplication, "spouse_not_on_application"],
+    [f.excludeTransunion, "transunion_being_used"],
   ]
   const excluded = keys.filter(([on]) => on).map(([, key]) => key)
   return excluded.length ? excluded : undefined
@@ -754,6 +793,12 @@ export async function listMaturingDealsFiltered(supabase: DB, f: OpenDealFilters
     p_income_types_excluded: f.incomeTypesExcluded.length ? f.incomeTypesExcluded : undefined,
     p_residency_statuses_excluded: f.residencyStatusesExcluded.length ? f.residencyStatusesExcluded : undefined,
     p_others_excluded: othersExcludedKeys(f),
+    p_credit_issues_excluded: f.creditIssuesExcluded.length ? f.creditIssuesExcluded : undefined,
+    p_down_payment_sources_excluded: f.downPaymentSourcesExcluded.length ? f.downPaymentSourcesExcluded : undefined,
+    p_assets_liquid_min: f.assetsLiquidMin ?? undefined,
+    p_assets_total_min: f.assetsTotalMin ?? undefined,
+    p_max_door_titles: f.maxDoorTitles ?? undefined,
+    p_require_no_exceptions: f.requireNoExceptions || undefined,
   })
   if (error) throw new Error(error.message)
   return (data ?? []).map(mapMaturingRow)

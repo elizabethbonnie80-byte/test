@@ -1,8 +1,9 @@
 /**
- * Smoke for the offer SWITCH flow (business rule): accepting an offer auto-declines the other pending
- * offers; switching then flips the accepted offer to 'switched', returns the auto-declined offers to
- * 'pending', and puts the deal back to 'offer_received'. Real broker + two lender sessions against
- * local Supabase; uses a throwaway deal it deletes afterward.
+ * Smoke for the offer SWITCH flow (business rule): accepting an offer (Round 3 ONE-step: accept =
+ * confirm + invoice) auto-declines the other pending offers; switching then flips the accepted offer
+ * to 'switched', DELETES the acceptance invoice, returns the auto-declined offers to 'pending', puts
+ * the deal back to 'offer_received', and does NOT notify the switched lender. Real broker + two
+ * lender sessions against local Supabase; uses a throwaway deal it deletes afterward.
  *   node scripts/seed-users.mjs && node scripts/smoke-switch.mjs
  */
 import { service, signIn, idByEmail, ensureApprovedLender, daysAgo, dateDaysAgo, upsertSubmittedDeal } from "./_demo-lib.mjs"
@@ -52,19 +53,27 @@ async function main() {
     check("both lenders can make an offer", !e1 && !e2 && !!o1 && !!o2, e1?.message ?? e2?.message)
     check("make_offer flips the deal to offer_received", (await dealStatus(dealId)) === "offer_received")
 
-    // Accept O1 (no one-step) → O1 accepted, O2 auto-declined, deal accepted.
-    const { error: aErr } = await broker.rpc("accept_offer", { p_offer_id: o1.id, p_one_step: false })
+    // Accept O1 (Round 3 one-step) → O1 accepted, O2 auto-declined, deal CONFIRMED + invoice created.
+    const { error: aErr } = await broker.rpc("accept_offer", { p_offer_id: o1.id })
     check("broker accepts an offer", !aErr, aErr?.message)
     check("accepted offer → 'accepted'", (await offerStatus(o1.id)) === "accepted")
     check("the other pending offer → auto 'declined'", (await offerStatus(o2.id)) === "declined")
-    check("deal → 'accepted'", (await dealStatus(dealId)) === "accepted")
+    check("deal → 'confirmed' in one step", (await dealStatus(dealId)) === "confirmed")
+    const invoicesOnDeal = async () =>
+      (await svc.from("invoices").select("id").eq("deal_id", dealId)).data?.length ?? 0
+    check("acceptance created the invoice", (await invoicesOnDeal()) === 1, String(await invoicesOnDeal()))
 
-    // Switch → O1 switched, O2 back to pending, deal back to offer_received.
+    // Switch → O1 switched, invoice DELETED, O2 back to pending, deal back to offer_received,
+    // and the switched lender gets NO notification (Round 3).
     const { error: sErr } = await broker.rpc("switch_offer", { p_deal_id: dealId })
     check("broker switches the accepted offer", !sErr, sErr?.message)
     check("previously accepted offer → 'switched'", (await offerStatus(o1.id)) === "switched")
     check("auto-declined offer returns to 'pending'", (await offerStatus(o2.id)) === "pending")
     check("deal returns to 'offer_received'", (await dealStatus(dealId)) === "offer_received")
+    check("switch DELETED the acceptance invoice", (await invoicesOnDeal()) === 0, String(await invoicesOnDeal()))
+    const { data: switchNotifs } = await svc.from("notifications")
+      .select("id").eq("deal_id", dealId).eq("type", "offer_switched")
+    check("switched lender NOT notified", (switchNotifs?.length ?? 0) === 0, `${switchNotifs?.length ?? 0} rows`)
 
     // --- Switch LIMIT: max 2 per calendar month, then blocked; reset restores it (business rule) ---
     const counter = async () =>
@@ -72,14 +81,14 @@ async function main() {
     check("counter = 1 after the first switch", (await counter()) === 1, String(await counter()))
 
     // Second switch of the month: accept the offer that came back to pending (o2), then switch → counter 2.
-    await broker.rpc("accept_offer", { p_offer_id: o2.id, p_one_step: false })
+    await broker.rpc("accept_offer", { p_offer_id: o2.id })
     const { error: s2 } = await broker.rpc("switch_offer", { p_deal_id: dealId })
     check("second switch of the month succeeds", !s2, s2?.message)
     check("counter = 2 after the second switch", (await counter()) === 2, String(await counter()))
 
     // Third switch: set up another accepted offer (both are 'switched' now) and attempt → must be blocked.
     await svc.from("offers").update({ status: "pending", decline_reason: null }).eq("id", o1.id)
-    await broker.rpc("accept_offer", { p_offer_id: o1.id, p_one_step: false })
+    await broker.rpc("accept_offer", { p_offer_id: o1.id })
     const { error: s3 } = await broker.rpc("switch_offer", { p_deal_id: dealId })
     check("third switch of the month is REJECTED", !!s3 && /both switches/i.test(s3.message ?? ""), s3?.message)
     check("counter stays 2 after the rejected switch", (await counter()) === 2, String(await counter()))

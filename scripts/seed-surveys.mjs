@@ -1,6 +1,6 @@
 /**
  * Seed closing surveys for the demo. Creates its OWN dedicated deals (DEAL-2026-40x) with PAST closing
- * dates, drives the real flow (lender make_offer → broker accept one-step → confirm_lender), then
+ * dates, drives the real flow (lender make_offer → broker one-step accept), then
  * replicates what the `job_trigger_closing_surveys` cron does (survey row + survey_pending notification
  * + deal → funded). Completes two surveys (satisfaction 5 and 2) via submit_survey and leaves one
  * PENDING so the broker's survey banner/dialog can be tested. Also produces overdue invoices (closing +

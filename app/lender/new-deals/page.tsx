@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import Link from 'next/link'
 import { LenderHeader } from '@/components/lender-header'
@@ -42,7 +42,7 @@ import {
   Loader2,
 } from 'lucide-react'
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const ITEMS_PER_PAGE = FEED_ITEMS_PER_PAGE
 
@@ -59,7 +59,7 @@ function sortByClosing(deals: LenderDealListItem[]): LenderDealListItem[] {
   })
 }
 
-// ─── Main page ────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Main page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function NewDealsPage() {
   const t = useT('newDeals')
@@ -74,7 +74,7 @@ export default function NewDealsPage() {
     selectedIds, setSelectedIds, toggleSelect, toggleSelectAll,
     pendingDeals, allSelected, someSelected, bulkSelected, lenderStatus,
     currentPage, setCurrentPage, totalPages, startIndex,
-    offerTarget, setOfferTarget, handleMakeOffer, onOfferSent,
+    offerTarget, setOfferTarget, handleMakeOffer, onOfferSent, offerPrefillProduct,
     declineTarget, setDeclineTarget, confirmDecline,
     messageTarget, setMessageTarget, messageText, setMessageText,
     messageSending, messageShowError, setMessageShowError, sendMessage,
@@ -132,7 +132,7 @@ export default function NewDealsPage() {
             )}
           </div>
 
-          {/* Saved filters row — the lender's real DB filters (created/edited in Settings). Clicking
+          {/* Saved filters row â€” the lender's real DB filters (created/edited in Settings). Clicking
               one narrows the feed server-side; clicking the active one clears it. */}
           <div className="flex items-center gap-2 overflow-x-auto pb-0.5">
             <span className="flex items-center gap-1 text-xs text-muted-foreground whitespace-nowrap shrink-0">
@@ -320,7 +320,7 @@ export default function NewDealsPage() {
                     )}
                   </div>
 
-                  {/* Card body — property / deal / qualifying information */}
+                  {/* Card body â€” property / deal / qualifying information */}
                   <div className="p-6">
                     <LenderDealDetailSections deal={deal} />
                   </div>
@@ -380,7 +380,7 @@ export default function NewDealsPage() {
         </p>
       </main>
 
-      {/* ── Decline confirmation ── */}
+      {/* â”€â”€ Decline confirmation â”€â”€ */}
       <AlertDialog open={!!declineTarget} onOpenChange={() => setDeclineTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -403,7 +403,7 @@ export default function NewDealsPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* ── Message modal ── */}
+      {/* â”€â”€ Message modal â”€â”€ */}
       <AlertDialog open={!!messageTarget} onOpenChange={() => { setMessageTarget(null); setMessageShowError(false) }}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -439,9 +439,9 @@ export default function NewDealsPage() {
       </AlertDialog>
 
       {/* Make Offer dialog (shared component: form + anti-contact + make_offer) */}
-      <MakeOfferDialog dealIds={offerTarget} onClose={() => setOfferTarget(null)} onSuccess={onOfferSent} />
+      <MakeOfferDialog dealIds={offerTarget} prefillProduct={offerPrefillProduct} onClose={() => setOfferTarget(null)} onSuccess={onOfferSent} />
 
-      {/* Filters sidepanel — full-criteria (province → the 20 "Others" checkboxes), matching the
+      {/* Filters sidepanel â€” full-criteria (province â†’ the 20 "Others" checkboxes), matching the
           client's reference Bubble panel. */}
       <DealFiltersSidepanel
         open={showFilters}

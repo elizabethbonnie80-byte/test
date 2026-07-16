@@ -190,6 +190,11 @@ const DEAL_INFO_FLAG_TABLE: [DealCol, Bi][] = [
   ["cosignor_occupying", ["Co-signor Occupying", "Cosignataire occupant"]],
   ["cosignor_not_occupying", ["Co-signor Not Occupying", "Cosignataire non occupant"]],
   ["guarantor", ["Guarantor", "Garant"]],
+  // Round 3 Create Deal flags, replicated as lender filter criteria (migration 43).
+  ["reverse_mortgage", ["Reverse Mortgage", "Hypothèque inversée"]],
+  ["married_or_common_law", ["Married / Common Law", "Marié(e) / conjoint de fait"]],
+  ["spouse_not_on_application", ["Spouse Not on Application", "Conjoint absent de la demande"]],
+  ["transunion_being_used", ["TransUnion Being Used", "TransUnion utilisé"]],
 ]
 
 const PROPERTY_FLAG_TABLE: [DealCol, Bi][] = [

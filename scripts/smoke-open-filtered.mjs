@@ -5,6 +5,7 @@
  *   node scripts/seed-users.mjs && node scripts/seed-maturing.mjs && node scripts/smoke-open-filtered.mjs
  */
 import { createClient } from "@supabase/supabase-js"
+import { service } from "./_demo-lib.mjs"
 
 const URL = process.env.SUPABASE_URL ?? "http://127.0.0.1:54321"
 const ANON =
@@ -68,6 +69,51 @@ async function main() {
   const { data: combo } = await lender.rpc("open_deals_filtered", { p_province: "ontario", p_loan_amount_min: 1 })
   check("combined criteria stay a non-empty subset",
     (combo?.length ?? 0) > 0 && nums(combo).every((n) => baseNums.has(n)), `${combo?.length ?? 0} rows`)
+
+  // ── Round 3 criteria (migration 43): flag one baseline deal via the service role, filter it out /
+  // filter down to it, then restore the row exactly as found. Needs ≥2 open deals so the
+  // exclusion-side results stay NON-EMPTY (never vacuous).
+  const svc = service()
+  const markNum = nums(baseline)[0]
+  const { data: markRow } = await svc.from("deals")
+    .select("id, reverse_mortgage, assets_liquid_value, no_lender_exceptions_required")
+    .eq("deal_number", markNum).single()
+  try {
+    await svc.from("deals").update({
+      reverse_mortgage: true, assets_liquid_value: 50000, no_lender_exceptions_required: true,
+    }).eq("id", markRow.id)
+    await svc.from("deal_credit_issues").insert({ deal_id: markRow.id, credit_issue: "active_bankruptcy" })
+
+    // Exclude reverse mortgages (rides p_others_excluded) → the marked deal drops out, rest stays.
+    const { data: noRev, error: revErr } = await lender.rpc("open_deals_filtered", {
+      p_others_excluded: ["reverse_mortgage"],
+    })
+    check("exclude reverse_mortgage drops the flagged deal (non-empty rest)",
+      !revErr && (noRev?.length ?? 0) > 0 && !nums(noRev).includes(markNum),
+      revErr?.message ?? `${noRev?.length ?? 0} rows`)
+
+    // Exclude a credit issue the marked deal carries → same shape.
+    const { data: noBk } = await lender.rpc("open_deals_filtered", {
+      p_credit_issues_excluded: ["active_bankruptcy"],
+    })
+    check("exclude a carried credit issue drops the flagged deal (non-empty rest)",
+      (noBk?.length ?? 0) > 0 && !nums(noBk).includes(markNum), `${noBk?.length ?? 0} rows`)
+
+    // Require-style criteria narrow TO the marked deal (others have null assets / unchecked box).
+    const { data: liq } = await lender.rpc("open_deals_filtered", { p_assets_liquid_min: 1 })
+    check("assets_liquid_min keeps only deals with enough liquid assets",
+      nums(liq).includes(markNum) && (liq ?? []).length >= 1, `${liq?.length ?? 0} rows`)
+    const { data: noExc } = await lender.rpc("open_deals_filtered", { p_require_no_exceptions: true })
+    check("require_no_exceptions keeps the no-exceptions deal",
+      nums(noExc).includes(markNum), `${noExc?.length ?? 0} rows`)
+  } finally {
+    await svc.from("deal_credit_issues").delete().eq("deal_id", markRow.id).eq("credit_issue", "active_bankruptcy")
+    await svc.from("deals").update({
+      reverse_mortgage: markRow.reverse_mortgage,
+      assets_liquid_value: markRow.assets_liquid_value,
+      no_lender_exceptions_required: markRow.no_lender_exceptions_required,
+    }).eq("id", markRow.id)
+  }
 
   console.log(`\n${failures === 0 ? "ALL CHECKS PASSED" : failures + " CHECK(S) FAILED"}`)
   process.exit(failures === 0 ? 0 : 1)

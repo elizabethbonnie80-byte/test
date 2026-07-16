@@ -20,7 +20,7 @@ import { Search, ChevronLeft, ChevronRight, Eye, FileText, Pencil, Trash2, Clipb
 import { useState, useMemo, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { listBrokerDeals, deleteDraft, type BrokerDealListItem } from '@/lib/queries/deals'
+import { listBrokerDeals, deleteDeal, type BrokerDealListItem } from '@/lib/queries/deals'
 import { dealStatusStyle } from '@/lib/status-styles'
 import { listPendingSurveys, type PendingSurvey } from '@/lib/queries/surveys'
 import { SurveyDialog } from '@/components/survey-dialog'
@@ -85,17 +85,19 @@ export default function DealRoomPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [currentPage, setCurrentPage] = useState(1)
 
-  // Delete-draft confirmation (drafts only — RLS + deleteDraft guard to status='draft').
+  // Delete confirmation — Round 3: drafts AND submissions are deletable until an offer is
+  // accepted (RLS deals_broker_delete_unaccepted is the backstop). Deleting a submitted deal
+  // automatically removes it from the lender portal.
   const [deleteTarget, setDeleteTarget] = useState<Deal | null>(null)
   const [deleting, setDeleting] = useState(false)
 
-  const handleDeleteDraft = async () => {
+  const handleDelete = async () => {
     if (!deleteTarget) return
     setDeleting(true)
     try {
-      await deleteDraft(supabase, deleteTarget.id)
+      await deleteDeal(supabase, deleteTarget.id)
       setDeals((prev) => prev.filter((d) => d.id !== deleteTarget.id))
-      toast.success(t('draftDeleted'))
+      toast.success(deleteTarget.status === 'draft' ? t('draftDeleted') : t('dealDeleted'))
       setDeleteTarget(null)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t('deleteErr'))
@@ -344,6 +346,12 @@ export default function DealRoomPage() {
                                   icon: <Pencil className="h-4 w-4" />,
                                   href: `/create-deal?draft=${deal.id}`,
                                 },
+                                // Round 3: a submitted deal is editable until it has an offer.
+                                deal.status === 'submitted' && deal.offersCount === 0 && {
+                                  label: t('editDeal'),
+                                  icon: <Pencil className="h-4 w-4" />,
+                                  href: `/create-deal?edit=${deal.id}`,
+                                },
                                 deal.offersCount > 0 && {
                                   label: t('seeOffers'),
                                   icon: <FileText className="h-4 w-4" />,
@@ -354,8 +362,10 @@ export default function DealRoomPage() {
                                   icon: <Eye className="h-4 w-4" />,
                                   href: `/deal-detail/${deal.id}`,
                                 },
-                                deal.status === 'draft' && {
-                                  label: t('deleteDraft'),
+                                // Round 3: deletable until an offer is accepted (statuses past
+                                // offer_received imply an accepted offer).
+                                ['draft', 'submitted', 'offer_received'].includes(deal.status) && {
+                                  label: deal.status === 'draft' ? t('deleteDraft') : t('deleteDeal'),
                                   icon: <Trash2 className="h-4 w-4" />,
                                   destructive: true,
                                   onSelect: () => setDeleteTarget(deal),
@@ -430,7 +440,7 @@ export default function DealRoomPage() {
           />
         )}
 
-        {/* Delete-draft confirmation (drafts only) */}
+        {/* Delete confirmation — submitted deals warn that lenders lose access + offers are removed */}
         <AlertDialog
           open={!!deleteTarget}
           onOpenChange={(o) => {
@@ -439,20 +449,24 @@ export default function DealRoomPage() {
         >
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>{t('deleteDraftTitle')}</AlertDialogTitle>
-              <AlertDialogDescription>{t('deleteDraftConfirm')}</AlertDialogDescription>
+              <AlertDialogTitle>
+                {deleteTarget?.status === 'draft' ? t('deleteDraftTitle') : t('deleteDealTitle')}
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                {deleteTarget?.status === 'draft' ? t('deleteDraftConfirm') : t('deleteDealConfirm')}
+              </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel disabled={deleting}>{t('cancel')}</AlertDialogCancel>
               <AlertDialogAction
                 onClick={(e) => {
                   e.preventDefault()
-                  void handleDeleteDraft()
+                  void handleDelete()
                 }}
                 disabled={deleting}
                 className="bg-destructive text-white hover:bg-destructive/90"
               >
-                {deleting ? t('deleting') : t('deleteDraft')}
+                {deleting ? t('deleting') : deleteTarget?.status === 'draft' ? t('deleteDraft') : t('deleteDeal')}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

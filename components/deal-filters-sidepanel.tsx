@@ -86,6 +86,8 @@ const OTHERS_FLAG_KEYS = [
   'excludeFirstAndHeloc', 'excludeHeloc', 'excludeFixedSecond', 'excludeCosignorOccupying',
   'excludeCosignorNotOccupying', 'excludeGuarantor', 'excludePrequal', 'excludeNewBuild',
   'excludeRecreational', 'excludeHobbyFarm', 'excludeWellWater', 'excludeSeptic',
+  'excludeReverseMortgage', 'excludeMarriedOrCommonLaw', 'excludeSpouseNotOnApplication',
+  'excludeTransunion',
 ] as const
 type OthersFlagKey = (typeof OTHERS_FLAG_KEYS)[number]
 // Maps a `deals` column key (from lib/enums.ts DEAL_INFO_FLAGS/PROPERTY_FLAGS) to its FilterCriteria field.
@@ -110,6 +112,10 @@ const DEAL_COL_TO_FLAG_KEY: Record<string, OthersFlagKey> = {
   hobby_farm: 'excludeHobbyFarm',
   well_water: 'excludeWellWater',
   septic: 'excludeSeptic',
+  reverse_mortgage: 'excludeReverseMortgage',
+  married_or_common_law: 'excludeMarriedOrCommonLaw',
+  spouse_not_on_application: 'excludeSpouseNotOnApplication',
+  transunion_being_used: 'excludeTransunion',
 }
 
 const MAX_DOORS_OPTIONS = Array.from({ length: 10 }, (_, i) => i + 1)
@@ -226,6 +232,27 @@ export function DealFiltersSidepanel({
             <NumberField label={t('fCreditScoreMin')} value={draft.creditScoreMin}
               onChange={(v) => patch('creditScoreMin', v)} placeholder={t('min')} />
 
+            <SectionTitle hint={t('fCreditIssuesHint')}>{t('fCreditIssues')}</SectionTitle>
+            <ExcludeCheckboxGrid options={enums.CREDIT_ISSUE_OPTIONS} excluded={draft.creditIssuesExcluded}
+              onChange={(v) => patch('creditIssuesExcluded', v)} />
+
+            <SectionTitle hint={t('fDownPaymentHint')}>{t('fDownPayment')}</SectionTitle>
+            <ExcludeCheckboxGrid options={enums.DOWN_PAYMENT_SOURCE_OPTIONS} excluded={draft.downPaymentSourcesExcluded}
+              onChange={(v) => patch('downPaymentSourcesExcluded', v)} />
+
+            <div className="grid grid-cols-2 gap-4">
+              <NumberField label={t('fAssetsLiquidMin')} value={draft.assetsLiquidMin}
+                onChange={(v) => patch('assetsLiquidMin', v)} placeholder={t('min')} />
+              <NumberField label={t('fAssetsTotalMin')} value={draft.assetsTotalMin}
+                onChange={(v) => patch('assetsTotalMin', v)} placeholder={t('min')} />
+            </div>
+
+            <label className="flex items-center gap-2 text-sm font-medium text-foreground cursor-pointer select-none">
+              <Checkbox checked={draft.requireNoExceptions}
+                onCheckedChange={(v) => patch('requireNoExceptions', !!v)} />
+              {t('fRequireNoExceptions')}
+            </label>
+
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-foreground">{t('fMaxDoors')}</Label>
               <Select
@@ -239,6 +266,9 @@ export function DealFiltersSidepanel({
                 </SelectContent>
               </Select>
             </div>
+
+            <NumberField label={t('fMaxDoorTitles')} value={draft.maxDoorTitles}
+              onChange={(v) => patch('maxDoorTitles', v)} placeholder={t('max')} />
 
             <SectionTitle hint={t('fResidencyHint')}>{t('fResidency')}</SectionTitle>
             <ExcludeCheckboxGrid options={enums.RESIDENCY_STATUS_OPTIONS} excluded={draft.residencyStatusesExcluded}

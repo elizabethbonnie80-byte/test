@@ -66,7 +66,12 @@
     "cancel": "Cancel",
     "draftDeleted": "Draft deleted",
     "deleteErr": "Couldn't delete the draft.",
-    "showing": "Showing {from} to {to} of {total} deals"
+    "showing": "Showing {from} to {to} of {total} deals",
+    "editDeal": "Edit Deal",
+    "deleteDeal": "Delete Deal",
+    "deleteDealTitle": "Delete this deal?",
+    "deleteDealConfirm": "This permanently deletes the deal and any offers on it, and removes it from the lender portal. This cannot be undone.",
+    "dealDeleted": "Deal deleted"
   },
   "feed": {
     "Residential": "Residential",
@@ -228,7 +233,15 @@
     "sqFtValue": "{n} sq FT",
     "acresValue": "{n} acres",
     "yearsValue": "{n} years",
-    "pctValue": "{n}%"
+    "pctValue": "{n}%",
+    "fCreditIssues": "Credit Issues",
+    "fCreditIssuesHint": "Check if you do NOT want the credit issue included:",
+    "fDownPayment": "Down Payment Source",
+    "fDownPaymentHint": "Check if you do NOT want the down payment source included:",
+    "fAssetsLiquidMin": "Liquid Assets (min)",
+    "fAssetsTotalMin": "Total Assets (min)",
+    "fMaxDoorTitles": "Max Titles on Doors",
+    "fRequireNoExceptions": "Only deals with no lender exceptions required"
   },
   "maturingDeals": {
     "title": "Maturing Deals",
@@ -417,7 +430,8 @@
     "send": "Send Message",
     "withdrawnToast": "Offer withdrawn successfully.",
     "withdrawErr": "Could not withdraw the offer.",
-    "messageSent": "Message sent to broker."
+    "messageSent": "Message sent to broker.",
+    "editOffer": "Edit Offer"
   },
   "dealDetail": {
     "back": "Back to Deal Room",
@@ -439,7 +453,6 @@
     "ltv": "LTV",
     "product": "Product",
     "closingDate": "Closing Date",
-    "lenderConfirmed": "Lender Confirmed",
     "offerAccepted": "Offer Accepted",
     "offerLine": "Offer #{n} · {product}",
     "lender": "Lender",
@@ -452,9 +465,6 @@
     "days": "{n}d",
     "processingDays": "{n} days",
     "bps": "{n} bps",
-    "invoiceGenerated": "Platform-fee invoice {number} generated",
-    "invoiceDetail": "${amount} ({bps} bps) · due {date}",
-    "confirmLender": "Confirm Lender",
     "switchOffer": "Switch Offer",
     "availableOffers": "Available Offers",
     "listedByArrival": "Listed by order of arrival (oldest first)",
@@ -464,17 +474,17 @@
     "offerDeclined": "This offer has been declined",
     "acceptOffer": "Accept Offer",
     "acceptTitle": "Confirm Offer Selection",
-    "acceptBody": "You're about to accept this offer. Other pending offers will be declined. You can still switch (up to 2 times per month) before confirming the lender.",
+    "acceptBody": "You're about to accept this offer. Other pending offers will be declined, the lender's identity will be revealed, and the platform-fee invoice will be generated immediately. You can still switch lenders up to 2 times per calendar month.",
     "cancel": "Cancel",
     "confirmSelection": "Confirm Selection",
     "accepting": "Accepting…",
-    "toastAccepted": "Offer accepted. Confirm the lender to generate the invoice.",
+    "toastAccepted": "Offer accepted — lender revealed and platform-fee invoice generated.",
     "toastAcceptErr": "Could not accept the offer.",
-    "toastConfirmed": "Lender confirmed. Platform-fee invoice generated.",
-    "toastConfirmErr": "Could not confirm the lender.",
     "toastSwitched": "Acceptance undone. Offers are back in review.",
     "toastSwitchErr": "Could not switch.",
-    "toastSurvey": "Thanks — your survey was submitted."
+    "toastSurvey": "Thanks — your survey was submitted.",
+    "acceptedNoticeTitle": "The lender has been notified and the platform-fee invoice was generated.",
+    "acceptedNoticeBody": "If you switch (max 2 per calendar month), that invoice is deleted and the lender's portal shows the offer as declined."
   },
   "invoices": {
     "title": "Invoices",
@@ -919,7 +929,12 @@
     "lenderFeePctHint": "Loan-pricing info shown to the broker for comparison — does not affect the invoice.",
     "platformDeduction": "{brand} service fee ({term}-yr term)",
     "finalCommissionAmount": "Final Commission Amount",
-    "commissionFinePrint": "The final commission amount displayed on your match reflects the net commission you will receive. By accepting this submission, you irrevocably authorize the lender to have deducted {brand}'s applicable service fee from the gross commission payable in connection with this mortgage transaction and remit that amount directly to {brand}. This authorization is provided in accordance with, and is subject to, the Terms of Service."
+    "commissionFinePrint": "The final commission amount displayed on your match reflects the net commission you will receive. By accepting this submission, you irrevocably authorize the lender to have deducted {brand}'s applicable service fee from the gross commission payable in connection with this mortgage transaction and remit that amount directly to {brand}. This authorization is provided in accordance with, and is subject to, the Terms of Service.",
+    "editTitle": "Edit Offer",
+    "editDescription": "Update your pending offer. The broker will be notified of the change; your identity stays hidden until acceptance.",
+    "editSaved": "Offer updated. The broker has been notified.",
+    "saveEdit": "Save Changes",
+    "savingEdit": "Saving..."
   },
   "survey": {
     "title": "Closing Survey — {deal}",
@@ -1228,7 +1243,11 @@
     "infoDownPaymentNotesTitle": "Down payment notes guidance",
     "infoDownPaymentNotes": "Please comment on the source of the down payment if it is atypical in any way. Leave blank if everything is standard.",
     "infoGeneralNotesTitle": "General notes guidance",
-    "infoGeneralNotes": "If you require any exceptions or have any other information you think is critical to the decision to send an offer on your deal, please note it here. If there isn't anything that stands out, please leave it blank."
+    "infoGeneralNotes": "If you require any exceptions or have any other information you think is critical to the decision to send an offer on your deal, please note it here. If there isn't anything that stands out, please leave it blank.",
+    "editTitle": "Edit Deal",
+    "saveChanges": "Save Changes",
+    "savingChanges": "Saving...",
+    "dealUpdated": "Deal updated."
   },
   "admin": {
     "loading": "Loading…",

@@ -36,6 +36,7 @@ export type FeedDeal = {
   city: string | null
   province: Enums['province'] | null
   dwellingType: Enums['dwelling_type'] | null
+  mortgageProduct: Enums['mortgage_product'] | null
 }
 
 type Translate = (key: string, vars?: Record<string, string | number>) => string
@@ -295,6 +296,13 @@ export function useLenderDealFeed<T extends FeedDeal>(config: {
 
   const bulkSelected = Array.from(selectedIds)
 
+  // Round 3 offer prefill: when the Make Offer dialog targets a single deal, seed the offer's
+  // product from that deal (the remembered last response fills the rest; comments always cleared).
+  const offerPrefillProduct =
+    offerTarget?.length === 1
+      ? deals.find((d) => d.id === offerTarget[0])?.mortgageProduct ?? null
+      : null
+
   return {
     // data
     deals, loading, loadError, visibleDeals, paginated,
@@ -309,7 +317,7 @@ export function useLenderDealFeed<T extends FeedDeal>(config: {
     // pagination
     currentPage, setCurrentPage, totalPages, startIndex,
     // dialogs + actions
-    offerTarget, setOfferTarget, handleMakeOffer, onOfferSent,
+    offerTarget, setOfferTarget, handleMakeOffer, onOfferSent, offerPrefillProduct,
     declineTarget, setDeclineTarget, confirmDecline,
     messageTarget, setMessageTarget, messageText, setMessageText,
     messageSending, messageShowError, setMessageShowError, sendMessage,

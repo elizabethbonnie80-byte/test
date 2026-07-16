@@ -103,7 +103,7 @@ async function main() {
   })
   await makeOffer(lender, dealC, { product: "5_year_fixed", rate: 5.24, lockDays: 90, bps: 35, comments: "Standard terms on this file." })
   const offC2 = await makeOffer(lender2, dealC, { product: "5_year_fixed", rate: 5.09, lockDays: 120, bps: 40, comments: "Sharper rate + longer lock." })
-  await broker.rpc("accept_offer", { p_offer_id: offC2.id, p_one_step: true })
+  await broker.rpc("accept_offer", { p_offer_id: offC2.id })
 
   // ── DEAL-2026-504: broker accepts lender@'s offer, then SWITCHES → lender@'s offer becomes 'switched',
   //    the other returns to pending, the deal goes back to offer_received ──
@@ -117,7 +117,7 @@ async function main() {
   })
   const offD1 = await makeOffer(lender, dealD, { product: "3_year_fixed", rate: 4.99, lockDays: 120, bps: 40, comments: "Can close on your timeline." })
   await makeOffer(lender2, dealD, { product: "3_year_fixed", rate: 5.04, lockDays: 90, bps: 35, comments: "Flexible on conditions." })
-  await broker.rpc("accept_offer", { p_offer_id: offD1.id, p_one_step: false })
+  await broker.rpc("accept_offer", { p_offer_id: offD1.id })
   await broker.rpc("switch_offer", { p_deal_id: dealD })
 
   console.log("Seeded: DEAL-2026-501 (2 competing offers) + 502 (1 offer) pending · 503 (declined offer) · 504 (switched offer) · 1 draft deal.")

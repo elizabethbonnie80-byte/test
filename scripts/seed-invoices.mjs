@@ -1,7 +1,7 @@
 /**
  * Seed platform invoices for the /admin/invoices + lender/invoices demo. Creates its OWN dedicated
  * confirmed deals (DEAL-2026-30x) — so it never consumes the open/maturing/expired demo deals — then
- * drives the real flow (lender make_offer → broker accept one-step → confirm_lender generates the
+ * drives the real flow (lender make_offer → broker one-step accept generates the
  * invoice), so number/bps/amount are computed by the RPCs. Produces a Pending, a Paid and a Cancelled
  * invoice. Idempotent (deals deleted by number first). LOCAL ONLY.
  *   node scripts/seed-invoices.mjs

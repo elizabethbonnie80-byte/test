@@ -1,10 +1,10 @@
 'use client'
 
 import { useState, useMemo, useEffect, useCallback } from 'react'
-import Link from 'next/link'
 import { LenderHeader } from '@/components/lender-header'
 import { createClient } from '@/lib/supabase/client'
 import { listSubmittedOffers, withdrawOffer, type SubmittedOfferItem } from '@/lib/queries/offers'
+import { MakeOfferDialog, type OfferEditTarget } from '@/components/make-offer-dialog'
 import { useT } from '@/components/i18n-provider'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -39,9 +39,8 @@ import {
   Eye,
   Trash2,
   AlertTriangle,
-  TrendingUp,
   XCircle,
-  RefreshCcw,
+  Pencil,
   Percent,
   CalendarClock,
   FileText,
@@ -69,12 +68,13 @@ function fmtCurrency(n: number): string {
   return n >= 1_000_000 ? `$${(n / 1_000_000).toFixed(2)}M` : `$${(n / 1000).toFixed(0)}K`
 }
 
+// Round 3: a switched-away offer surfaces as plain "Declined" here (the data-layer mapping lives in
+// lib/queries/offers.ts), so the page only knows Pending / Accepted / Declined.
 function statusCfg(status: OfferStatus) {
   switch (status) {
     case 'Pending':   return { cls: offerStatusStyle('pending'),  icon: <Clock className="h-3 w-3" /> }
     case 'Accepted':  return { cls: offerStatusStyle('accepted'), icon: <CheckCircle className="h-3 w-3" /> }
     case 'Declined':  return { cls: offerStatusStyle('declined'), icon: <XCircle className="h-3 w-3" /> }
-    case 'Switched':  return { cls: offerStatusStyle('switched'), icon: <RefreshCcw className="h-3 w-3" /> }
   }
 }
 
@@ -272,6 +272,8 @@ export default function SubmittedOffersPage() {
 
   // Dialogs
   const [detailOffer, setDetailOffer] = useState<SubmittedOffer | null>(null)
+  // Round 3: pending offers stay editable until accepted (edit_offer RPC; broker notified on edit).
+  const [editTarget, setEditTarget] = useState<OfferEditTarget | null>(null)
   const [withdrawTarget, setWithdrawTarget] = useState<string | null>(null)
   const [messageTarget, setMessageTarget] = useState<string | null>(null)
   const [messageText, setMessageText] = useState('')
@@ -329,7 +331,6 @@ export default function SubmittedOffersPage() {
     pending:  offersWithState.filter((o) => o.status === 'Pending').length,
     accepted: offersWithState.filter((o) => o.status === 'Accepted').length,
     declined: offersWithState.filter((o) => o.status === 'Declined').length,
-    switched: offersWithState.filter((o) => o.status === 'Switched').length,
   }), [offersWithState])
 
   // ── Handlers ──
@@ -363,6 +364,24 @@ export default function SubmittedOffersPage() {
   const getOfferById = (id: string) =>
     offersWithState.find((o) => o.id === id) ?? null
 
+  // Prefill the shared offer dialog with the offer's saved values (comments included — the lender
+  // is editing their own text; the "always clear comments" rule applies to NEW-offer prefill only).
+  const openEdit = (offer: SubmittedOffer) =>
+    setEditTarget({
+      offerId: offer.id,
+      dealId: offer.dealId,
+      values: {
+        mortgageProduct: offer.mortgageProduct,
+        rate: String(offer.offeredRate),
+        rateLockDays: String(offer.rateLockDays),
+        commissionBps: String(offer.commissionBps),
+        commitmentDays: offer.commitmentDays === null ? '' : String(offer.commitmentDays),
+        docReviewDays: offer.docReviewDays === null ? '' : String(offer.docReviewDays),
+        comments: offer.comments ?? '',
+        lenderFeePct: offer.lenderFeePct === null ? '' : String(offer.lenderFeePct),
+      },
+    })
+
   return (
     <div className="min-h-screen bg-background">
       <LenderHeader />
@@ -376,13 +395,12 @@ export default function SubmittedOffersPage() {
         </div>
 
         {/* Summary cards */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {[
             { label: t('total'), value: stats.total, cls: '' },
             { label: tf('Pending'), value: stats.pending, cls: 'text-yellow-700' },
             { label: tf('Accepted'), value: stats.accepted, cls: 'text-green-700' },
             { label: tf('Declined'), value: stats.declined, cls: 'text-muted-foreground' },
-            { label: tf('Switched'), value: stats.switched, cls: 'text-slate-600' },
           ].map(({ label, value, cls }) => (
             <div key={label} className="bg-card border border-border rounded-lg p-4">
               <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">{label}</p>
@@ -412,7 +430,6 @@ export default function SubmittedOffersPage() {
                 <SelectItem value="Pending">{tf('Pending')}</SelectItem>
                 <SelectItem value="Accepted">{tf('Accepted')}</SelectItem>
                 <SelectItem value="Declined">{tf('Declined')}</SelectItem>
-                <SelectItem value="Switched">{tf('Switched')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -485,9 +502,7 @@ export default function SubmittedOffersPage() {
                         <tr
                           key={offer.id}
                           className={`border-b border-border last:border-b-0 transition-colors ${
-                            ['Declined', 'Switched'].includes(offer.status)
-                              ? 'opacity-50'
-                              : 'hover:bg-muted/40'
+                            offer.status === 'Declined' ? 'opacity-50' : 'hover:bg-muted/40'
                           }`}
                         >
                           {/* Deal # */}
@@ -555,6 +570,7 @@ export default function SubmittedOffersPage() {
                                 label={t('colActions')}
                                 actions={[
                                   { label: t('viewDetails'), icon: <Eye className="h-4 w-4" />, onSelect: () => setDetailOffer(offer) },
+                                  active && { label: t('editOffer'), icon: <Pencil className="h-4 w-4" />, onSelect: () => openEdit(offer) },
                                   { label: t('messageBroker'), icon: <MessageSquare className="h-4 w-4" />, onSelect: () => { setMessageTarget(offer.id); setMessageText('') } },
                                   active && { label: t('withdrawBtn'), icon: <Trash2 className="h-4 w-4" />, destructive: true, onSelect: () => setWithdrawTarget(offer.id) },
                                 ]}
@@ -618,6 +634,18 @@ export default function SubmittedOffersPage() {
         onClose={() => setDetailOffer(null)}
         onWithdraw={(id) => setWithdrawTarget(id)}
         onMessage={(id) => { setMessageTarget(id); setMessageText('') }}
+      />
+
+      {/* ── Edit offer (Round 3: editable until accepted; broker is notified) ── */}
+      <MakeOfferDialog
+        dealIds={null}
+        edit={editTarget}
+        onClose={() => setEditTarget(null)}
+        onSuccess={async (_ids, message) => {
+          setEditTarget(null)
+          await load().catch(() => {})
+          flash(message)
+        }}
       />
 
       {/* ── Withdraw confirmation ── */}

@@ -114,7 +114,7 @@ export async function offerAndConfirm(lender, broker, dealId, { product, rate, l
   })
   if (oe || !offer) throw new Error(`make_offer ${dealId}: ${oe?.message ?? "no offer"}`)
 
-  const { error: ae } = await broker.rpc("accept_offer", { p_offer_id: offer.id, p_one_step: true })
+  const { error: ae } = await broker.rpc("accept_offer", { p_offer_id: offer.id })
   if (ae) throw new Error(`accept_offer ${dealId}: ${ae.message}`)
 
   const { data: inv } = await lender.from("invoices").select("id, invoice_number, status").eq("deal_id", dealId).maybeSingle()

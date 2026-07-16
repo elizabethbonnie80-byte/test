@@ -18,6 +18,7 @@ import {
   getDealDraft,
   updateAndSubmitDeal,
   updateDealDraft,
+  updateSubmittedDeal,
   type DealDraftInput,
 } from "@/lib/queries/deals"
 import { scanContact } from "@/lib/queries/anti-contact"
@@ -109,6 +110,9 @@ export default function CreateDealPage() {
   const [isSaving, setIsSaving] = useState(false)
   // Set when resuming an existing draft (/create-deal?draft=<id>) → save/submit update in place.
   const [draftId, setDraftId] = useState<string | null>(null)
+  // Round 3: editing a SUBMITTED deal (no offers yet). Loaded the same way but saved via
+  // updateSubmittedDeal (status untouched — the deal keeps its number and stays in the feeds).
+  const [editingSubmitted, setEditingSubmitted] = useState(false)
   // Sections the user tried to leave/submit while incomplete — turns on inline (red border + text) errors.
   const [attempted, setAttempted] = useState<Record<Section, boolean>>({
     client: false,
@@ -193,13 +197,16 @@ export default function CreateDealPage() {
   const [recreationalProperty, setRecreationalProperty] = useState(false)
   const [hobbyFarm, setHobbyFarm] = useState(false)
 
-  // Resume an existing draft when ?draft=<id> is present: load it and prefill the whole form.
+  // Resume an existing draft (?draft=<id>) or edit a submitted deal (?edit=<id>): load it and
+  // prefill the whole form. The loaded status decides the mode, not the param name.
   useEffect(() => {
-    const id = new URLSearchParams(window.location.search).get("draft")
+    const search = new URLSearchParams(window.location.search)
+    const id = search.get("draft") ?? search.get("edit")
     if (!id) return
     getDealDraft(supabase, id)
-      .then(({ input }) => {
+      .then(({ input, status }) => {
         setDraftId(id)
+        setEditingSubmitted(status === "submitted")
         setClientFirstName(input.borrowerFirstName ?? "")
         setClientLastName(input.borrowerLastName ?? "")
         setOccupancyType(input.occupancy ?? "")
@@ -470,10 +477,16 @@ export default function CreateDealPage() {
         toast.error(issue)
         return
       }
-      const deal = draftId
-        ? await updateAndSubmitDeal(supabase, draftId, collectInput())
-        : await createAndSubmitDeal(supabase, collectInput())
-      toast.success(t("dealSubmitted", { number: deal?.deal_number ?? "" }))
+      if (editingSubmitted && draftId) {
+        // Round 3: save changes in place — the deal stays 'submitted' and keeps its number.
+        await updateSubmittedDeal(supabase, draftId, collectInput())
+        toast.success(t("dealUpdated"))
+      } else {
+        const deal = draftId
+          ? await updateAndSubmitDeal(supabase, draftId, collectInput())
+          : await createAndSubmitDeal(supabase, collectInput())
+        toast.success(t("dealSubmitted", { number: deal?.deal_number ?? "" }))
+      }
       router.push("/deal-room")
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("errSubmit"))
@@ -511,7 +524,9 @@ export default function CreateDealPage() {
       <main className="flex-1 py-8 px-4">
         <div className="max-w-5xl mx-auto">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-foreground mb-2">{draftId ? t("resumeTitle") : t("title")}</h1>
+            <h1 className="text-3xl font-bold text-foreground mb-2">
+              {editingSubmitted ? t("editTitle") : draftId ? t("resumeTitle") : t("title")}
+            </h1>
             <p className="text-muted-foreground">{t("subtitle")}</p>
           </div>
 
@@ -673,10 +688,12 @@ export default function CreateDealPage() {
                 <div className="flex justify-between pt-4 border-t border-border">
                   <span />
                   <div className="flex gap-3">
-                    <Button type="button" variant="outline" onClick={handleSaveDraft} disabled={isSaving || !hasAnyData}>
-                      <Save className="mr-2 h-4 w-4" />
-                      {t("saveDraft")}
-                    </Button>
+                    {!editingSubmitted && (
+                      <Button type="button" variant="outline" onClick={handleSaveDraft} disabled={isSaving || !hasAnyData}>
+                        <Save className="mr-2 h-4 w-4" />
+                        {t("saveDraft")}
+                      </Button>
+                    )}
                     <Button type="button" onClick={() => advanceTo("deal")}>
                       {t("nextDeal")}
                       <ChevronRight className="ml-2 h-4 w-4" />
@@ -878,10 +895,12 @@ export default function CreateDealPage() {
                     {t("back")}
                   </Button>
                   <div className="flex gap-3">
-                    <Button type="button" variant="outline" onClick={handleSaveDraft} disabled={isSaving || !hasAnyData}>
-                      <Save className="mr-2 h-4 w-4" />
-                      {t("saveDraft")}
-                    </Button>
+                    {!editingSubmitted && (
+                      <Button type="button" variant="outline" onClick={handleSaveDraft} disabled={isSaving || !hasAnyData}>
+                        <Save className="mr-2 h-4 w-4" />
+                        {t("saveDraft")}
+                      </Button>
+                    )}
                     <Button type="button" onClick={() => advanceTo("qualifying")}>
                       {t("nextQualifying")}
                       <ChevronRight className="ml-2 h-4 w-4" />
@@ -1202,10 +1221,12 @@ export default function CreateDealPage() {
                     {t("back")}
                   </Button>
                   <div className="flex gap-3">
-                    <Button type="button" variant="outline" onClick={handleSaveDraft} disabled={isSaving || !hasAnyData}>
-                      <Save className="mr-2 h-4 w-4" />
-                      {t("saveDraft")}
-                    </Button>
+                    {!editingSubmitted && (
+                      <Button type="button" variant="outline" onClick={handleSaveDraft} disabled={isSaving || !hasAnyData}>
+                        <Save className="mr-2 h-4 w-4" />
+                        {t("saveDraft")}
+                      </Button>
+                    )}
                     <Button type="button" onClick={() => advanceTo("property")}>
                       {t("nextProperty")}
                       <ChevronRight className="ml-2 h-4 w-4" />
@@ -1393,16 +1414,20 @@ export default function CreateDealPage() {
                     {t("back")}
                   </Button>
                   <div className="flex gap-3">
-                    <Button type="button" variant="outline" onClick={handleSaveDraft} disabled={isSaving || !hasAnyData}>
-                      <Save className="mr-2 h-4 w-4" />
-                      {t("saveDraft")}
-                    </Button>
+                    {!editingSubmitted && (
+                      <Button type="button" variant="outline" onClick={handleSaveDraft} disabled={isSaving || !hasAnyData}>
+                        <Save className="mr-2 h-4 w-4" />
+                        {t("saveDraft")}
+                      </Button>
+                    )}
                     <Button
                       type="submit"
                       disabled={isSaving}
                       className={SECTION_ORDER.every((s) => sectionComplete(s)) ? "" : "opacity-50"}
                     >
-                      {isSaving ? t("submitting") : t("submitDeal")}
+                      {isSaving
+                        ? editingSubmitted ? t("savingChanges") : t("submitting")
+                        : editingSubmitted ? t("saveChanges") : t("submitDeal")}
                       <ChevronRight className="ml-2 h-4 w-4" />
                     </Button>
                   </div>

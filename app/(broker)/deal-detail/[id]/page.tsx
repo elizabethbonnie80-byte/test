@@ -13,7 +13,6 @@ import {
   getBrokerDealFull,
   listDealOffers,
   acceptOffer,
-  confirmLender,
   switchOffer,
   getAcceptedLender,
   type BrokerDealDetail,
@@ -56,7 +55,6 @@ export default function DealDetailPage() {
   const [fullDeal, setFullDeal] = useState<LenderDealListItem | null>(null)
   const [offers, setOffers] = useState<DealOffer[]>([])
   const [lender, setLender] = useState<AcceptedLender | null>(null)
-  const [invoice, setInvoice] = useState<{ invoice_number: string; amount: number; platform_bps: number; due_date: string } | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -96,6 +94,8 @@ export default function DealDetailPage() {
     }
   }, [load])
 
+  // Round 3 ONE-step accept (supersedes OQ#21): accept_offer atomically reveals the lender,
+  // generates the platform-fee invoice, and notifies the lender — no separate Confirm step.
   const doAccept = async () => {
     if (!pendingAcceptId) return
     setBusy(true)
@@ -111,27 +111,11 @@ export default function DealDetailPage() {
     }
   }
 
-  const doConfirm = async () => {
-    if (!deal) return
-    setBusy(true)
-    try {
-      const inv = await confirmLender(supabase, deal.id)
-      setInvoice(inv as typeof invoice)
-      await load()
-      toast.success(t('toastConfirmed'))
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : t('toastConfirmErr'))
-    } finally {
-      setBusy(false)
-    }
-  }
-
   const doSwitch = async () => {
     if (!deal) return
     setBusy(true)
     try {
       await switchOffer(supabase, deal.id)
-      setInvoice(null)
       await load()
       toast.success(t('toastSwitched'))
     } catch (err) {
@@ -142,7 +126,6 @@ export default function DealDetailPage() {
   }
 
   const accepted = deal && ['accepted', 'confirmed', 'funded'].includes(deal.status)
-  const confirmed = deal?.lenderConfirmed
   const acceptedOffer = offers.find((o) => o.id === deal?.acceptedOfferId) ?? null
 
   return (
@@ -243,7 +226,7 @@ export default function DealDetailPage() {
                     <div className="flex items-start justify-between mb-6">
                       <div>
                         <h3 className="text-xl font-semibold text-foreground">
-                          {confirmed ? t('lenderConfirmed') : t('offerAccepted')}
+                          {t('offerAccepted')}
                         </h3>
                         <p className="text-sm text-muted-foreground mt-1">
                           {t('offerLine', { n: acceptedOffer.offerNumber, product: LABELS.mortgage_product[acceptedOffer.mortgageProduct] })}
@@ -303,27 +286,18 @@ export default function DealDetailPage() {
                         <p className="text-sm text-muted-foreground mb-6">{acceptedOffer.comments}</p>
                       )}
 
-                      {confirmed ? (
-                        invoice && (
-                          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                            <p className="text-sm font-semibold text-green-900">
-                              {t('invoiceGenerated', { number: invoice.invoice_number })}
-                            </p>
-                            <p className="text-xs text-green-800 mt-1">
-                              {t('invoiceDetail', { amount: Number(invoice.amount).toLocaleString(), bps: invoice.platform_bps, date: fmt(invoice.due_date) })}
-                            </p>
-                          </div>
-                        )
-                      ) : (
-                        <div className="flex gap-3">
-                          <Button onClick={doConfirm} disabled={busy} className="flex-1 gap-2">
-                            <Check className="h-4 w-4" />
-                            {t('confirmLender')}
-                          </Button>
-                          <Button onClick={doSwitch} disabled={busy} variant="outline" className="flex-1">
-                            {t('switchOffer')}
-                          </Button>
-                        </div>
+                      {/* Round 3 one-step accept: the lender was notified and the platform-fee
+                          invoice generated on acceptance — the broker's only remaining action is
+                          Switch (max 2/month; blocked once the invoice is paid). */}
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+                        <p className="text-sm font-semibold text-green-900">{t('acceptedNoticeTitle')}</p>
+                        <p className="text-xs text-green-800 mt-1">{t('acceptedNoticeBody')}</p>
+                      </div>
+
+                      {deal.status !== 'funded' && (
+                        <Button onClick={doSwitch} disabled={busy} variant="outline" className="w-full">
+                          {t('switchOffer')}
+                        </Button>
                       )}
                     </div>
                   </div>

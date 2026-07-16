@@ -37,6 +37,29 @@ export async function makeOffer(supabase: DB, input: MakeOfferInput) {
   return data
 }
 
+export type EditOfferInput = Omit<MakeOfferInput, "dealId"> & { offerId: string }
+
+/**
+ * Round 3: edit a PENDING offer in place (edit_offer RPC, migration 41) — same field set as
+ * make_offer. Server enforces own-offer + still-pending, re-scans the comments for contact info,
+ * and notifies the broker (without revealing the lender's identity).
+ */
+export async function editOffer(supabase: DB, input: EditOfferInput) {
+  const { data, error } = await supabase.rpc("edit_offer", {
+    p_offer_id: input.offerId,
+    p_mortgage_product: input.mortgageProduct,
+    p_rate: input.rate,
+    p_rate_lock_days: input.rateLockDays,
+    p_commission_bps: input.commissionBps,
+    p_commitment_turn_time_days: input.commitmentTurnTimeDays ?? undefined,
+    p_doc_review_turn_time_days: input.docReviewTurnTimeDays ?? undefined,
+    p_comments: input.comments ?? undefined,
+    p_lender_fee_pct: input.lenderFeePct ?? undefined,
+  })
+  if (error) throw new Error(error.message)
+  return data
+}
+
 // ── Broker: deal detail + offers ───────────────────────────────────────────────
 
 export type DealOffer = {
@@ -187,16 +210,13 @@ export async function listDealOffers(supabase: DB, dealId: string): Promise<Deal
   }))
 }
 
-/** Accept an offer (two-step model: reveal happens on confirm). p_one_step is available for OQ#21. */
+/**
+ * Accept an offer — Round 3 ONE-step model (supersedes OQ#21): the RPC atomically accepts,
+ * auto-declines the others, reveals identities (deal → confirmed), creates the platform-fee
+ * invoice, and notifies the lender. There is no separate Confirm Lender step anymore.
+ */
 export async function acceptOffer(supabase: DB, offerId: string) {
   const { data, error } = await supabase.rpc("accept_offer", { p_offer_id: offerId })
-  if (error) throw new Error(error.message)
-  return data
-}
-
-/** Confirm the accepted lender → generates the platform-fee invoice + reveals identities. */
-export async function confirmLender(supabase: DB, dealId: string) {
-  const { data, error } = await supabase.rpc("confirm_lender", { p_deal_id: dealId })
   if (error) throw new Error(error.message)
   return data
 }
@@ -233,6 +253,7 @@ export async function getAcceptedLender(supabase: DB, dealId: string): Promise<A
 /** A row on the lender's Submitted Offers page (their offer + the deal it's on). */
 export type SubmittedOfferItem = {
   id: string
+  dealId: string
   dealNumber: string
   province: string
   city: string
@@ -251,14 +272,23 @@ export type SubmittedOfferItem = {
   conditions: string[]
   offerDate: string
   expiryDate: string
-  status: "Pending" | "Accepted" | "Declined" | "Switched"
+  status: "Pending" | "Accepted" | "Declined"
+  // Raw offer fields, kept for the Round 3 "Edit Offer" prefill (pending offers only).
+  mortgageProduct: Enums["mortgage_product"]
+  rateLockDays: number
+  commitmentDays: number | null
+  docReviewDays: number | null
+  lenderFeePct: number | null
+  comments: string | null
 }
 
+// Round 3: the lender portal shows a switched-away offer as plain "Declined" (the broker's switch
+// is silent on the lender side — no notification, no distinct status).
 const OFFER_STATUS_LABEL: Record<Enums["offer_status"], SubmittedOfferItem["status"]> = {
   pending: "Pending",
   accepted: "Accepted",
   declined: "Declined",
-  switched: "Switched",
+  switched: "Declined",
 }
 
 function dwellingToPropertyType(d: Enums["dwelling_type"] | null): string {
@@ -295,7 +325,7 @@ export async function listSubmittedOffers(supabase: DB): Promise<SubmittedOfferI
   const { data, error } = await supabase
     .from("offers")
     .select(
-      "id, status, rate, rate_lock_days, commission_bps, mortgage_product, comments, created_at, deals!offers_deal_id_fkey(deal_number, province, city, dwelling_type, loan_amount, ltv, property_value, purpose, insured, closing_date, amortization_years)",
+      "id, deal_id, status, rate, rate_lock_days, commission_bps, commitment_turn_time_days, doc_review_turn_time_days, lender_fee_pct, mortgage_product, comments, created_at, deals!offers_deal_id_fkey(deal_number, province, city, dwelling_type, loan_amount, ltv, property_value, purpose, insured, closing_date, amortization_years)",
     )
     .eq("lender_id", user.id)
     .order("created_at", { ascending: false })
@@ -308,6 +338,7 @@ export async function listSubmittedOffers(supabase: DB): Promise<SubmittedOfferI
     expiry.setDate(expiry.getDate() + o.rate_lock_days)
     return {
       id: o.id,
+      dealId: o.deal_id,
       dealNumber: d?.deal_number ?? "—",
       province: d?.province ? PROVINCE_CODE[d.province as Enums["province"]] : "",
       city: d?.city ?? "",
@@ -327,6 +358,12 @@ export async function listSubmittedOffers(supabase: DB): Promise<SubmittedOfferI
       offerDate: o.created_at.slice(0, 10),
       expiryDate: expiry.toISOString().slice(0, 10),
       status: OFFER_STATUS_LABEL[o.status],
+      mortgageProduct: o.mortgage_product,
+      rateLockDays: o.rate_lock_days,
+      commitmentDays: o.commitment_turn_time_days,
+      docReviewDays: o.doc_review_turn_time_days,
+      lenderFeePct: o.lender_fee_pct === null ? null : Number(o.lender_fee_pct),
+      comments: o.comments,
     }
   })
 }

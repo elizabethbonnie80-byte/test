@@ -1227,8 +1227,14 @@ export type Database = {
           acres_max: number | null
           amortization_max: number | null
           amortization_min: number | null
+          assets_liquid_min: number | null
+          assets_total_min: number | null
           created_at: string
+          credit_issues: Database["public"]["Enums"]["credit_issue"][] | null
           credit_score_min: number | null
+          down_payment_sources:
+            | Database["public"]["Enums"]["down_payment_source"][]
+            | null
           dwelling_type: Database["public"]["Enums"]["dwelling_type"] | null
           exclude_bridge_loan: boolean | null
           exclude_cashback: boolean | null
@@ -1241,6 +1247,7 @@ export type Database = {
           exclude_guarantor: boolean | null
           exclude_heloc: boolean | null
           exclude_hobby_farm: boolean | null
+          exclude_married_or_common_law: boolean
           exclude_medical_professional: boolean | null
           exclude_networth_program: boolean | null
           exclude_new_build: boolean | null
@@ -1248,7 +1255,10 @@ export type Database = {
           exclude_prequal: boolean | null
           exclude_purchase_plus_improvements: boolean | null
           exclude_recreational: boolean | null
+          exclude_reverse_mortgage: boolean
           exclude_septic: boolean | null
+          exclude_spouse_not_on_application: boolean
+          exclude_transunion: boolean
           exclude_well_water: boolean | null
           gds_max: number | null
           id: string
@@ -1261,6 +1271,7 @@ export type Database = {
           location_type: Database["public"]["Enums"]["location_type"] | null
           ltv_max: number | null
           ltv_min: number | null
+          max_door_titles: number | null
           max_doors: number | null
           mortgage_position:
             | Database["public"]["Enums"]["mortgage_position"]
@@ -1274,6 +1285,7 @@ export type Database = {
           property_value_min: number | null
           province: Database["public"]["Enums"]["province"] | null
           purpose: Database["public"]["Enums"]["transaction_purpose"] | null
+          require_no_exceptions: boolean
           residency_statuses:
             | Database["public"]["Enums"]["residency_status"][]
             | null
@@ -1288,8 +1300,14 @@ export type Database = {
           acres_max?: number | null
           amortization_max?: number | null
           amortization_min?: number | null
+          assets_liquid_min?: number | null
+          assets_total_min?: number | null
           created_at?: string
+          credit_issues?: Database["public"]["Enums"]["credit_issue"][] | null
           credit_score_min?: number | null
+          down_payment_sources?:
+            | Database["public"]["Enums"]["down_payment_source"][]
+            | null
           dwelling_type?: Database["public"]["Enums"]["dwelling_type"] | null
           exclude_bridge_loan?: boolean | null
           exclude_cashback?: boolean | null
@@ -1302,6 +1320,7 @@ export type Database = {
           exclude_guarantor?: boolean | null
           exclude_heloc?: boolean | null
           exclude_hobby_farm?: boolean | null
+          exclude_married_or_common_law?: boolean
           exclude_medical_professional?: boolean | null
           exclude_networth_program?: boolean | null
           exclude_new_build?: boolean | null
@@ -1309,7 +1328,10 @@ export type Database = {
           exclude_prequal?: boolean | null
           exclude_purchase_plus_improvements?: boolean | null
           exclude_recreational?: boolean | null
+          exclude_reverse_mortgage?: boolean
           exclude_septic?: boolean | null
+          exclude_spouse_not_on_application?: boolean
+          exclude_transunion?: boolean
           exclude_well_water?: boolean | null
           gds_max?: number | null
           id?: string
@@ -1322,6 +1344,7 @@ export type Database = {
           location_type?: Database["public"]["Enums"]["location_type"] | null
           ltv_max?: number | null
           ltv_min?: number | null
+          max_door_titles?: number | null
           max_doors?: number | null
           mortgage_position?:
             | Database["public"]["Enums"]["mortgage_position"]
@@ -1335,6 +1358,7 @@ export type Database = {
           property_value_min?: number | null
           province?: Database["public"]["Enums"]["province"] | null
           purpose?: Database["public"]["Enums"]["transaction_purpose"] | null
+          require_no_exceptions?: boolean
           residency_statuses?:
             | Database["public"]["Enums"]["residency_status"][]
             | null
@@ -1349,8 +1373,14 @@ export type Database = {
           acres_max?: number | null
           amortization_max?: number | null
           amortization_min?: number | null
+          assets_liquid_min?: number | null
+          assets_total_min?: number | null
           created_at?: string
+          credit_issues?: Database["public"]["Enums"]["credit_issue"][] | null
           credit_score_min?: number | null
+          down_payment_sources?:
+            | Database["public"]["Enums"]["down_payment_source"][]
+            | null
           dwelling_type?: Database["public"]["Enums"]["dwelling_type"] | null
           exclude_bridge_loan?: boolean | null
           exclude_cashback?: boolean | null
@@ -1363,6 +1393,7 @@ export type Database = {
           exclude_guarantor?: boolean | null
           exclude_heloc?: boolean | null
           exclude_hobby_farm?: boolean | null
+          exclude_married_or_common_law?: boolean
           exclude_medical_professional?: boolean | null
           exclude_networth_program?: boolean | null
           exclude_new_build?: boolean | null
@@ -1370,7 +1401,10 @@ export type Database = {
           exclude_prequal?: boolean | null
           exclude_purchase_plus_improvements?: boolean | null
           exclude_recreational?: boolean | null
+          exclude_reverse_mortgage?: boolean
           exclude_septic?: boolean | null
+          exclude_spouse_not_on_application?: boolean
+          exclude_transunion?: boolean
           exclude_well_water?: boolean | null
           gds_max?: number | null
           id?: string
@@ -1383,6 +1417,7 @@ export type Database = {
           location_type?: Database["public"]["Enums"]["location_type"] | null
           ltv_max?: number | null
           ltv_min?: number | null
+          max_door_titles?: number | null
           max_doors?: number | null
           mortgage_position?:
             | Database["public"]["Enums"]["mortgage_position"]
@@ -1396,6 +1431,7 @@ export type Database = {
           property_value_min?: number | null
           province?: Database["public"]["Enums"]["province"] | null
           purpose?: Database["public"]["Enums"]["transaction_purpose"] | null
+          require_no_exceptions?: boolean
           residency_statuses?:
             | Database["public"]["Enums"]["residency_status"][]
             | null
@@ -1522,7 +1558,7 @@ export type Database = {
     }
     Functions: {
       accept_offer: {
-        Args: { p_offer_id: string; p_one_step?: boolean }
+        Args: { p_offer_id: string }
         Returns: {
           comments: string | null
           commission_bps: number
@@ -1609,43 +1645,51 @@ export type Database = {
           isSetofReturn: false
         }
       }
-      confirm_lender: {
-        Args: { p_deal_id: string }
-        Returns: {
-          amount: number
-          broker_name: string
-          cancelled_at: string | null
-          cancelled_reason: string | null
-          client_name: string
-          closing_date: string
-          created_at: string
-          deal_id: string
-          due_date: string
-          id: string
-          invoice_number: string
-          lender_id: string
-          loan_amount: number
-          mortgage_product: Database["public"]["Enums"]["mortgage_product"]
-          offer_id: string
-          paid_at: string | null
-          pdf_path: string | null
-          platform_bps: number
-          status: Database["public"]["Enums"]["invoice_status"]
-          term_years: number | null
-          updated_at: string
-        }
-        SetofOptions: {
-          from: "*"
-          to: "invoices"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
       current_role_of: {
         Args: { uid: string }
         Returns: Database["public"]["Enums"]["user_role"]
       }
+      deal_has_offers: { Args: { p_deal_id: string }; Returns: boolean }
       decline_deal: { Args: { p_deal_id: string }; Returns: undefined }
+      edit_offer: {
+        Args: {
+          p_comments?: string
+          p_commission_bps: number
+          p_commitment_turn_time_days?: number
+          p_doc_review_turn_time_days?: number
+          p_lender_fee_pct?: number
+          p_mortgage_product: Database["public"]["Enums"]["mortgage_product"]
+          p_offer_id: string
+          p_rate: number
+          p_rate_lock_days: number
+        }
+        Returns: {
+          comments: string | null
+          commission_bps: number
+          commitment_turn_time_days: number | null
+          created_at: string
+          deal_id: string
+          decline_reason:
+            | Database["public"]["Enums"]["offer_decline_reason"]
+            | null
+          doc_review_turn_time_days: number | null
+          id: string
+          lender_fee_pct: number | null
+          lender_id: string
+          mortgage_product: Database["public"]["Enums"]["mortgage_product"]
+          offer_number: number
+          rate: number
+          rate_lock_days: number
+          status: Database["public"]["Enums"]["offer_status"]
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "offers"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       expired_deals_for_lender: {
         Args: never
         Returns: {
@@ -1768,7 +1812,11 @@ export type Database = {
           p_acres_max?: number
           p_amortization_max?: number
           p_amortization_min?: number
+          p_assets_liquid_min?: number
+          p_assets_total_min?: number
+          p_credit_issues_excluded?: Database["public"]["Enums"]["credit_issue"][]
           p_credit_score_min?: number
+          p_down_payment_sources_excluded?: Database["public"]["Enums"]["down_payment_source"][]
           p_dwelling_type?: Database["public"]["Enums"]["dwelling_type"]
           p_gds_max?: number
           p_income_types_excluded?: Database["public"]["Enums"]["income_type"][]
@@ -1778,6 +1826,7 @@ export type Database = {
           p_location_type?: Database["public"]["Enums"]["location_type"]
           p_ltv_max?: number
           p_ltv_min?: number
+          p_max_door_titles?: number
           p_max_doors?: number
           p_mortgage_position?: Database["public"]["Enums"]["mortgage_position"]
           p_mortgage_product?: Database["public"]["Enums"]["mortgage_product"]
@@ -1787,6 +1836,7 @@ export type Database = {
           p_property_value_min?: number
           p_province?: Database["public"]["Enums"]["province"]
           p_purpose?: Database["public"]["Enums"]["transaction_purpose"]
+          p_require_no_exceptions?: boolean
           p_residency_statuses_excluded?: Database["public"]["Enums"]["residency_status"][]
           p_square_footage_min?: number
           p_tds_max?: number
@@ -1920,7 +1970,11 @@ export type Database = {
           p_acres_max?: number
           p_amortization_max?: number
           p_amortization_min?: number
+          p_assets_liquid_min?: number
+          p_assets_total_min?: number
+          p_credit_issues_excluded?: Database["public"]["Enums"]["credit_issue"][]
           p_credit_score_min?: number
+          p_down_payment_sources_excluded?: Database["public"]["Enums"]["down_payment_source"][]
           p_dwelling_type?: Database["public"]["Enums"]["dwelling_type"]
           p_gds_max?: number
           p_income_types_excluded?: Database["public"]["Enums"]["income_type"][]
@@ -1930,6 +1984,7 @@ export type Database = {
           p_location_type?: Database["public"]["Enums"]["location_type"]
           p_ltv_max?: number
           p_ltv_min?: number
+          p_max_door_titles?: number
           p_max_doors?: number
           p_mortgage_position?: Database["public"]["Enums"]["mortgage_position"]
           p_mortgage_product?: Database["public"]["Enums"]["mortgage_product"]
@@ -1939,6 +1994,7 @@ export type Database = {
           p_property_value_min?: number
           p_province?: Database["public"]["Enums"]["province"]
           p_purpose?: Database["public"]["Enums"]["transaction_purpose"]
+          p_require_no_exceptions?: boolean
           p_residency_statuses_excluded?: Database["public"]["Enums"]["residency_status"][]
           p_square_footage_min?: number
           p_tds_max?: number

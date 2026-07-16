@@ -263,8 +263,28 @@ New→Maturing boundary to **2 days** [was 4; OQ#18 → New 0–1 / Maturing 2�
 the 9-arg with the optional trailing `p_lender_fee_pct`; display-only, never affects the invoice math) ·
 `39_round3_broker_admin_submitter` (`profiles_brokerage_admin_read` RLS policy — `i_am_broker_admin() and
 brokerage_id = my_brokerage()` — so a broker-admin's Deal Room can embed a brokerage-mate's name for the new
-"Submitted By" column). **⚠️ Migrations 36–39 (Round 3 Phase 1) are applied to the STAGING hosted DB
-(2026-07-14) but NOT yet to prod** — they ship to prod when Phase 1 is promoted `staging`→`main`.
+"Submitted By" column) · `40_round3_edit_delete_submitted` (**Round 3 Phase 2, Broker Deal Room**: a broker
+can UPDATE their own SUBMITTED deal until it has an offer [`deals_broker_update_submitted_no_offers` +
+widened `identities_broker_update`, via the `deal_has_offers()` SECURITY DEFINER helper — an inline `offers`
+subquery would 42P17-recurse], and DELETE drafts AND submissions until an offer is accepted
+[`deals_broker_delete_unaccepted` replaces migration 27's draft-only policy; children cascade, which is the
+"auto-remove from the lender portal" behaviour]) · `41_round3_edit_offer` (`edit_offer(p_offer_id, …)` —
+lender edits their own still-PENDING offer in place [same field set as make_offer incl. `lender_fee_pct`];
+frozen once accepted/declined/switched; anti-contact BEFORE UPDATE trigger still scans; broker notified
+without identity leak) · `42_round3_one_step_accept` (**one-step accept, supersedes OQ#21**: `accept_offer`
+drops `p_one_step` and atomically accepts + auto-declines the rest + reveals [deal → `confirmed`,
+`lender_confirmed`] + creates the invoice + notifies the lender ONCE; **`confirm_lender` is DROPPED**;
+`switch_offer` now also **DELETEs the acceptance invoice** [a PAID invoice blocks the switch], resets
+`lender_confirmed`, and no longer notifies the switched lender — the lender portal shows 'switched' as
+"Declined" via the UI mapping in `lib/queries/offers.ts`) · `43_round3_filter_new_fields` (**replicates the
+Round 3 Create Deal fields as saved-filter criteria**: `saved_filters` gains `credit_issues`/
+`down_payment_sources` exclusion arrays, 4 `exclude_*` flags [reverse mortgage / married-or-common-law /
+spouse-not-on-application / TransUnion], `assets_liquid_min`/`assets_total_min`/`max_door_titles` bounds +
+`require_no_exceptions`; `saved_filter_matches` enforces them null-safely [filter-only — the weighted match
+engine is untouched] and `open_deals_filtered`/`maturing_deals_filtered` gain the matching trailing params,
+the 4 flags riding the existing `p_others_excluded` key list). **⚠️ Hosted status: migrations 36–39 (Phase 1)
+are applied to the STAGING hosted DB (2026-07-14) but NOT yet to prod; 40–43 (Phase 2) are applied locally
+only** — push to staging/prod is a deploy step (never without the user's go-ahead).
 
 **Wired to Supabase (real data + verified):** sign-in (role redirect) · **password reset** (**OTP-code flow**:
 `/forgot-password` is 2-step — email → `resetPasswordForEmail`, then a **6-digit code** + new password →
@@ -280,11 +300,15 @@ sign-up shows an in-app **OTP code screen** [`verifyOtp`, length-agnostic 6–8-
 `app/lender/layout.tsx` redirects an unapproved lender to the `/pending-approval` holding page —
 pending or rejected+reason; sign-in routes them there directly; approved lenders unaffected) ·
 create-deal (submit) ·
-deal-room (broker's deals) · lender/new-deals · deal-detail (accept/confirm→invoice + identity
-reveal; **+ a "Full Deal Details" card** — the broker sees the whole record via the shared
+deal-room (broker's deals) · lender/new-deals · deal-detail (**Round 3 ONE-step accept** — Accept =
+auto-decline the rest + identity reveal + invoice + lender notification in one RPC, no Confirm Lender
+button, Switch stays available until the invoice is paid; **+ a "Full Deal Details" card** — the broker
+sees the whole record via the shared
 `LenderDealDetailSections` [`getBrokerDealFull`] PLUS the borrower name + property address that are
 deliberately hidden from lenders) · make-offer dialog (**every field required except comments**, with
-the Create-Deal-style inline validation — red `*` + red border + "field required" on empty fields) ·
+the Create-Deal-style inline validation — red `*` + red border + "field required" on empty fields;
+**Round 3 prefill**: single-target offers seed the product from the deal + the rest from the lender's
+remembered last response [localStorage, comments always cleared]) ·
 lender/submitted-offers · lender/invoices (mark-paid/cancel/changes) ·
 lender/maturing-deals (server match %) · lender/settings saved-filters CRUD · admin/lender-approvals
 · admin/alerts · **admin console** (deal-overview = every deal via `deals_admin`, filters + search;
@@ -304,8 +328,10 @@ Deal Room / Create Deal / Deal Detail pages render `components/portal-header.tsx
 chrome; all-deals oversight stays in Deal Overview) · **public legal pages** (`/legal/privacy`,
 `/legal/terms` render the published doc via `getPublishedLegalDoc` — anon-readable through
 `legal_read_published` — wired from the sign-up ToS checkbox + the footer, replacing the old dead `#` links) ·
-**delete draft** (broker/admin removes a DRAFT from the Deal Room Actions dropdown via `deleteDraft`, guarded
-to `status='draft'`, with an AlertDialog) · **rating-penalty effect** (OQ#25: a penalized lender is hidden from — and cannot bid
+**delete deal** (Round 3: broker/admin removes a draft OR an unaccepted submission from the Deal Room
+Actions dropdown via `deleteDeal` [replaces `deleteDraft`], backed by `deals_broker_delete_unaccepted` —
+deleting a submitted deal auto-removes it from the lender portal [offers/chats cascade]; distinct
+AlertDialog copy per case) · **rating-penalty effect** (OQ#25: a penalized lender is hidden from — and cannot bid
 on / chat about — near-closing / near-COF deals via `lender_can_see_deal`; admin manages at
 `/admin/penalties`; windows default 45d/14d, admin-configurable via `penalty_settings`) ·
 **FAQ pages** (`/faq`, `/lender/faq` real accordion grouped by category via shared `components/faq-view.tsx`,
@@ -365,7 +391,17 @@ multi-select Credit Issues/Down Payment Source/Residency Status [`deal_credit_is
 `deal_down_payment_sources` junction tables, migration 36] + info popups; the bps auto-deduct/"Final
 Commission Amount" preview + optional Lender Fee % in the Make Offer dialog; broker-admin brokerage-wide
 Deal Room visibility with a "Submitted By" column; the real **Contact-Us** wiring via a new `contact-us`
-edge function [Resend, mirrors `notify-email`]; the Maturing window is now 2–14 days).
+edge function [Resend, mirrors `notify-email`]; the Maturing window is now 2–14 days) · **Round 3 Phase 2**
+(all 6 buildable items — the rebrand + `lendermatch.ca` domain-connect stay BLOCKED on client input, see
+`docs/round3-progress.md`; highlights: edit a submitted deal until it has an offer [Deal Room "Edit" →
+`/create-deal?edit=<id>`, the wizard's edit mode saves via `updateSubmittedDeal` without touching status];
+delete drafts AND submissions until an offer is accepted [`deleteDeal`]; **one-step accept** [Confirm Lender
+removed, migration 42; lender portal shows a switched offer as "Declined"; switch deletes the invoice
+silently]; **Edit Offer** on Submitted Offers for pending offers [shared `MakeOfferDialog` in edit mode →
+`edit_offer`, broker notified]; offer-entry **prefill + remember-last** [deal product + localStorage
+`ll_last_offer`, comments always cleared]; the Round 3 Create Deal fields replicated in the **Filters
+sidepanel** [credit-issue/down-payment exclusions, 4 new "Others" flags, liquid/total asset minimums, max
+door titles, "no exceptions only"] — a chip and the panel still share `saved_filter_matches`).
 
 **Still mock / not built:** nothing currently tracked here — the last prototype (Contact-Us form submit)
 was wired in Round 3 Phase 1 (see below). (The **notification email channel** is now wired — see the
@@ -490,13 +526,18 @@ on several sets — any data migration must map **by display label** using the t
   lists failing criteria when 70≤pct<100. Checkbox criteria filter the list but do NOT score.
   (Bubble bugs #10/#11 — credit-score fail missing from the badge, purpose compared against
   transaction type — fix per spec, noted in the SQL implementation.)
-- **List age windows** (from `created_at`, day-rounded): build = New 0–4d / Maturing 4–14d /
-  Expired 15+. ⚠️ Pending client decision #18 (latest direction may be 0–1 / 2–14 / 15+) — the
-  window values are constants in one place; do not scatter.
+- **List age windows** (from `created_at`, day-rounded): **New 0–1d / Maturing 2–14d / Expired 15+**
+  (Round 3 Phase 1, supersedes OQ#18). The values live in `lib/age-windows.ts` + the maturing SQL
+  window (migration 37) — do not scatter.
 - **Switches**: max 2 per calendar month per broker; switch returns auto-declined offers to pending
-  and the switched offer to `switched`; counter resets monthly.
-- **Acceptance flow**: currently Accept → (Switch | Confirm Lender) → confirmed → invoice.
-  ⚠️ The client wants Confirm Lender REMOVED (accept = reveal + invoice in one step) — pending #21.
+  and the switched offer to `switched`; counter resets monthly. **Round 3 (migration 42):** the switch
+  also **DELETEs the invoice created on acceptance** (a PAID invoice blocks the switch), and the
+  switched lender is **not notified** — their portal simply shows the offer as "Declined" (UI mapping;
+  the broker-side data keeps `switched`).
+- **Acceptance flow**: **ONE step** (Round 3 Phase 2, supersedes OQ#21 — implemented in migration 42):
+  `accept_offer` atomically accepts + auto-declines the other pending offers + reveals identities
+  (deal → `confirmed`, `lender_confirmed`) + generates the platform-fee invoice + notifies the lender
+  once. `confirm_lender` no longer exists; Switch remains available after acceptance.
 - **Expiration**: submitted deals with no offer expire after 15 days (notify broker); archived 30
   days after expiring.
 - **Anti-contact**: regex (email / phone / URL / sender's own first+last name) + Claude API second
@@ -569,10 +610,13 @@ on several sets — any data migration must map **by display label** using the t
 - **Data-layer smokes**: `scripts/smoke-*.mjs` exercise the RPCs + RLS with real user sessions (each
   self-cleans). Run the whole suite with **`pnpm smoke`** (reseeds first) or **`pnpm smoke:quick`**
   (`--no-seed`, against the current DB); `smoke-all.mjs` prints a pass/fail summary and exits non-zero
-  on any failure. Coverage includes the create-deal→new-deals slice, the offer loop + **bps 3/4/5**
-  (`smoke-offers`) + **switch** incl. the **2/month cap + reset** (`smoke-switch`), the **match-% engine**
-  (`smoke-maturing` — weights/formula/badge + Bubble bugs #10/#11), **delete-draft** (`smoke-delete-draft` —
-  owner-only, status-gated, cascade), **decline** off the feeds (`smoke-decline`), **bilateral blocking**
+  on any failure. Coverage includes the create-deal→new-deals slice, the offer loop + **bps 3/4/5** +
+  **one-step accept** + **edit_offer** (`smoke-offers`) + **switch** incl. the **2/month cap + reset** +
+  **invoice deletion + no-lender-notify** (`smoke-switch`), the **match-% engine**
+  (`smoke-maturing` — weights/formula/badge + Bubble bugs #10/#11), the Round 3 **edit/delete rules**
+  (`smoke-delete-draft` — delete until accepted incl. offer cascade, edit-submitted until first offer,
+  owner-only, cascade), the Round 3 **filter criteria** (`smoke-open-filtered`), **decline** off the feeds
+  (`smoke-decline`), **bilateral blocking**
   (`smoke-blocking` — security invariant #2), anti-contact, notifications, messaging, saved-filter feeds,
   sign-up, admin, FAQs, surveys, the rating penalty (effect + **survey→job computation**), and password
   reset. Pure helpers (`lib/csv`, `lib/status-styles`, `lib/enums`) have **Vitest** unit tests

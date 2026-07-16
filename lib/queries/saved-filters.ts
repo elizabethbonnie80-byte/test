@@ -63,6 +63,20 @@ export type FilterCriteria = {
   excludeHobbyFarm: boolean
   excludeWellWater: boolean
   excludeSeptic: boolean
+  // Round 3 Create Deal fields replicated as criteria (migration 43) — filter-only, never scored.
+  /** Checked = deals carrying this credit issue are NOT wanted (excluded). */
+  creditIssuesExcluded: Enums["credit_issue"][]
+  /** Checked = deals with this down-payment source are NOT wanted (excluded). */
+  downPaymentSourcesExcluded: Enums["down_payment_source"][]
+  excludeReverseMortgage: boolean
+  excludeMarriedOrCommonLaw: boolean
+  excludeSpouseNotOnApplication: boolean
+  excludeTransunion: boolean
+  assetsLiquidMin: number | null
+  assetsTotalMin: number | null
+  maxDoorTitles: number | null
+  /** Only show deals whose "No lender exceptions required" box is checked (all 4 notes empty). */
+  requireNoExceptions: boolean
 }
 
 export const EMPTY_FILTER_CRITERIA: FilterCriteria = {
@@ -111,6 +125,16 @@ export const EMPTY_FILTER_CRITERIA: FilterCriteria = {
   excludeHobbyFarm: false,
   excludeWellWater: false,
   excludeSeptic: false,
+  creditIssuesExcluded: [],
+  downPaymentSourcesExcluded: [],
+  excludeReverseMortgage: false,
+  excludeMarriedOrCommonLaw: false,
+  excludeSpouseNotOnApplication: false,
+  excludeTransunion: false,
+  assetsLiquidMin: null,
+  assetsTotalMin: null,
+  maxDoorTitles: null,
+  requireNoExceptions: false,
 }
 
 /** Number of distinct criteria groups set on an ad-hoc FilterCriteria, for a "Filters (N)" badge.
@@ -138,12 +162,20 @@ export function countActiveFilters(f: FilterCriteria): number {
   if (f.acresMax !== null) n++
   if (f.incomeTypesExcluded.length) n++
   if (f.residencyStatusesExcluded.length) n++
+  if (f.creditIssuesExcluded.length) n++
+  if (f.downPaymentSourcesExcluded.length) n++
+  if (f.assetsLiquidMin !== null) n++
+  if (f.assetsTotalMin !== null) n++
+  if (f.maxDoorTitles !== null) n++
+  if (f.requireNoExceptions) n++
   if (
     f.excludeFthb || f.excludeNewToCanada || f.excludeNetworthProgram || f.excludeMedicalProfessional ||
     f.excludeCollateralTransfer || f.excludeCashback || f.excludeBridgeLoan || f.excludePurchasePlusImprovements ||
     f.excludeFirstAndHeloc || f.excludeHeloc || f.excludeFixedSecond || f.excludeCosignorOccupying ||
     f.excludeCosignorNotOccupying || f.excludeGuarantor || f.excludePrequal || f.excludeNewBuild ||
-    f.excludeRecreational || f.excludeHobbyFarm || f.excludeWellWater || f.excludeSeptic
+    f.excludeRecreational || f.excludeHobbyFarm || f.excludeWellWater || f.excludeSeptic ||
+    f.excludeReverseMortgage || f.excludeMarriedOrCommonLaw || f.excludeSpouseNotOnApplication ||
+    f.excludeTransunion
   ) n++
   return n
 }
@@ -194,15 +226,23 @@ function summarize(f: SavedFilterInput): { count: number; preview: string } {
   const loan = rangeLabel("Loan", f.loanAmountMin, f.loanAmountMax, (n) => `$${(n / 1000).toFixed(0)}k`)
   if (loan) parts.push(loan)
   if (f.maxDoors !== null) parts.push(`Max ${f.maxDoors} doors`)
+  if (f.maxDoorTitles !== null) parts.push(`Max ${f.maxDoorTitles} titles`)
+  if (f.assetsLiquidMin !== null) parts.push(`Liquid ≥ $${(f.assetsLiquidMin / 1000).toFixed(0)}k`)
+  if (f.assetsTotalMin !== null) parts.push(`Assets ≥ $${(f.assetsTotalMin / 1000).toFixed(0)}k`)
+  if (f.requireNoExceptions) parts.push("No exceptions only")
   const excludedCount =
     f.incomeTypesExcluded.length +
     f.residencyStatusesExcluded.length +
+    f.creditIssuesExcluded.length +
+    f.downPaymentSourcesExcluded.length +
     [
       f.excludeFthb, f.excludeNewToCanada, f.excludeNetworthProgram, f.excludeMedicalProfessional,
       f.excludeCollateralTransfer, f.excludeCashback, f.excludeBridgeLoan, f.excludePurchasePlusImprovements,
       f.excludeFirstAndHeloc, f.excludeHeloc, f.excludeFixedSecond, f.excludeCosignorOccupying,
       f.excludeCosignorNotOccupying, f.excludeGuarantor, f.excludePrequal, f.excludeNewBuild,
       f.excludeRecreational, f.excludeHobbyFarm, f.excludeWellWater, f.excludeSeptic,
+      f.excludeReverseMortgage, f.excludeMarriedOrCommonLaw, f.excludeSpouseNotOnApplication,
+      f.excludeTransunion,
     ].filter(Boolean).length
   if (excludedCount > 0) parts.push(`${excludedCount} exclusion${excludedCount > 1 ? "s" : ""}`)
   return { count: parts.length, preview: parts.join(" · ") || "No criteria set" }
@@ -257,6 +297,16 @@ function rowToInput(r: Row): SavedFilterInput {
     excludeHobbyFarm: r.exclude_hobby_farm ?? false,
     excludeWellWater: r.exclude_well_water ?? false,
     excludeSeptic: r.exclude_septic ?? false,
+    creditIssuesExcluded: r.credit_issues ?? [],
+    downPaymentSourcesExcluded: r.down_payment_sources ?? [],
+    excludeReverseMortgage: r.exclude_reverse_mortgage ?? false,
+    excludeMarriedOrCommonLaw: r.exclude_married_or_common_law ?? false,
+    excludeSpouseNotOnApplication: r.exclude_spouse_not_on_application ?? false,
+    excludeTransunion: r.exclude_transunion ?? false,
+    assetsLiquidMin: r.assets_liquid_min === null ? null : Number(r.assets_liquid_min),
+    assetsTotalMin: r.assets_total_min === null ? null : Number(r.assets_total_min),
+    maxDoorTitles: r.max_door_titles,
+    requireNoExceptions: r.require_no_exceptions ?? false,
   }
 }
 
@@ -310,6 +360,16 @@ function inputToColumns(input: SavedFilterInput) {
     exclude_hobby_farm: input.excludeHobbyFarm,
     exclude_well_water: input.excludeWellWater,
     exclude_septic: input.excludeSeptic,
+    credit_issues: input.creditIssuesExcluded.length ? input.creditIssuesExcluded : null,
+    down_payment_sources: input.downPaymentSourcesExcluded.length ? input.downPaymentSourcesExcluded : null,
+    exclude_reverse_mortgage: input.excludeReverseMortgage,
+    exclude_married_or_common_law: input.excludeMarriedOrCommonLaw,
+    exclude_spouse_not_on_application: input.excludeSpouseNotOnApplication,
+    exclude_transunion: input.excludeTransunion,
+    assets_liquid_min: input.assetsLiquidMin,
+    assets_total_min: input.assetsTotalMin,
+    max_door_titles: input.maxDoorTitles,
+    require_no_exceptions: input.requireNoExceptions,
   }
 }
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -16,7 +16,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { FieldError } from "@/components/field-error"
 import { createClient } from "@/lib/supabase/client"
-import { makeOffer } from "@/lib/queries/offers"
+import { makeOffer, editOffer } from "@/lib/queries/offers"
 import { scanContact } from "@/lib/queries/anti-contact"
 import { useT } from "@/components/i18n-provider"
 import { useEnums } from "@/lib/use-enums"
@@ -26,7 +26,19 @@ import type { Database } from "@/lib/database.types"
 
 type MortgageProduct = Database["public"]["Enums"]["mortgage_product"]
 
-const EMPTY = {
+/** The dialog's form as entered (strings). Shared with the submitted-offers Edit action. */
+export type OfferFormValues = {
+  mortgageProduct: string
+  rate: string
+  rateLockDays: string
+  commissionBps: string
+  commitmentDays: string
+  docReviewDays: string
+  comments: string
+  lenderFeePct: string
+}
+
+const EMPTY: OfferFormValues = {
   mortgageProduct: "",
   rate: "",
   rateLockDays: "",
@@ -37,11 +49,48 @@ const EMPTY = {
   lenderFeePct: "",
 }
 
+// Round 3 "remember last response": the last offer the lender sent, minus the comments (those are
+// ALWAYS cleared per the client spec). Local to this browser — a convenience prefill, not data.
+const LAST_OFFER_KEY = "ll_last_offer"
+
+function loadLastOffer(): Partial<OfferFormValues> {
+  try {
+    const raw = localStorage.getItem(LAST_OFFER_KEY)
+    if (!raw) return {}
+    const parsed = JSON.parse(raw) as Partial<OfferFormValues>
+    return { ...parsed, comments: "" }
+  } catch {
+    return {}
+  }
+}
+
+function saveLastOffer(form: OfferFormValues) {
+  try {
+    const { comments: _comments, ...rest } = form
+    localStorage.setItem(LAST_OFFER_KEY, JSON.stringify(rest))
+  } catch {
+    // storage unavailable (private mode) — the prefill is best-effort
+  }
+}
+
+/** An existing pending offer being edited (Round 3: offers are editable until accepted). */
+export type OfferEditTarget = {
+  offerId: string
+  dealId: string
+  values: OfferFormValues
+}
+
 /**
- * Shared Make-Offer dialog (New Deals + Maturing Deals). Collects the offer (commission always in bps),
- * runs the anti-contact pre-check on the comment, then calls make_offer for each target deal. Batch-
- * capable: pass one id (Maturing) or several (New Deals bulk). On success it calls onSuccess so the
- * host page updates its own row state; identity stays hidden until the broker accepts.
+ * Shared offer dialog (New Deals + Maturing Deals + Submitted Offers "Edit"). Collects the offer
+ * (commission always in bps), runs the anti-contact pre-check on the comment, then calls make_offer
+ * for each target deal — or edit_offer when `edit` is set (Round 3: pending offers stay editable
+ * until accepted; the broker is notified on edit). Batch-capable: pass one id (Maturing) or several
+ * (New Deals bulk). On success it calls onSuccess so the host page updates its own row state;
+ * identity stays hidden until the broker accepts.
+ *
+ * Round 3 prefill: a new offer starts from the lender's remembered last response (comments always
+ * cleared); `prefillProduct` (the target deal's own product, when a single deal is targeted) wins
+ * over the remembered product.
  *
  * Validation mirrors the Create Deal wizard: every field is required except the comments — required
  * fields carry a red asterisk and, once the lender tries to send while incomplete, show a red border +
@@ -49,10 +98,14 @@ const EMPTY = {
  */
 export function MakeOfferDialog({
   dealIds,
+  edit = null,
+  prefillProduct = null,
   onClose,
   onSuccess,
 }: {
   dealIds: string[] | null
+  edit?: OfferEditTarget | null
+  prefillProduct?: MortgageProduct | null
   onClose: () => void
   onSuccess: (ids: string[], message: string) => void
 }) {
@@ -62,7 +115,27 @@ export function MakeOfferDialog({
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [attempted, setAttempted] = useState(false)
+  const isEdit = edit !== null
+  const open = isEdit || dealIds !== null
   const count = dealIds?.length ?? 0
+
+  // Initialize the form when the dialog opens: the offer being edited, or (new offer) the
+  // remembered last response overlaid with the target deal's product.
+  useEffect(() => {
+    if (!open) return
+    if (edit) {
+      setForm(edit.values)
+    } else {
+      setForm({
+        ...EMPTY,
+        ...loadLastOffer(),
+        ...(prefillProduct ? { mortgageProduct: prefillProduct } : {}),
+      })
+    }
+    setError(null)
+    setAttempted(false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, edit?.offerId])
 
   // Every field except comments is required (same rule as the Create Deal wizard). Derived so it can
   // both gate submit and dim the button while incomplete (faux-disabled: the button stays clickable).
@@ -82,7 +155,7 @@ export function MakeOfferDialog({
   }
 
   const submit = async () => {
-    if (!dealIds || submitting) return
+    if ((!dealIds && !edit) || submitting) return
     if (missing) {
       setAttempted(true)
       setError(t("fillRequired"))
@@ -93,28 +166,39 @@ export function MakeOfferDialog({
     const supabase = createClient()
     try {
       // Anti-contact pre-check on the comment (logs an alert + blocks; DB trigger is the backstop).
-      const reason = await scanContact(supabase, form.comments, "offer_comments", dealIds[0])
+      const scanDealId = edit ? edit.dealId : dealIds![0]
+      const reason = await scanContact(supabase, form.comments, "offer_comments", scanDealId)
       if (reason) {
         setError(t("commentBlocked", { reason }))
         return
       }
-      for (const dealId of dealIds) {
-        await makeOffer(supabase, {
-          dealId,
-          mortgageProduct: form.mortgageProduct as MortgageProduct,
-          rate: Number(form.rate),
-          rateLockDays: Number(form.rateLockDays),
-          commissionBps: Number(form.commissionBps),
-          commitmentTurnTimeDays: Number(form.commitmentDays),
-          docReviewTurnTimeDays: Number(form.docReviewDays),
-          comments: form.comments || null,
-          lenderFeePct: form.lenderFeePct.trim() === "" ? null : Number(form.lenderFeePct),
-        })
+      const fields = {
+        mortgageProduct: form.mortgageProduct as MortgageProduct,
+        rate: Number(form.rate),
+        rateLockDays: Number(form.rateLockDays),
+        commissionBps: Number(form.commissionBps),
+        commitmentTurnTimeDays: Number(form.commitmentDays),
+        docReviewTurnTimeDays: Number(form.docReviewDays),
+        comments: form.comments || null,
+        lenderFeePct: form.lenderFeePct.trim() === "" ? null : Number(form.lenderFeePct),
       }
-      const msg = count === 1 ? t("sentOne") : t("sentMany", { count })
+      let ids: string[]
+      let msg: string
+      if (edit) {
+        await editOffer(supabase, { offerId: edit.offerId, ...fields })
+        ids = [edit.dealId]
+        msg = t("editSaved")
+      } else {
+        for (const dealId of dealIds!) {
+          await makeOffer(supabase, { dealId, ...fields })
+        }
+        saveLastOffer(form)
+        ids = dealIds!
+        msg = count === 1 ? t("sentOne") : t("sentMany", { count })
+      }
       setForm(EMPTY)
       setAttempted(false)
-      onSuccess(dealIds, msg)
+      onSuccess(ids, msg)
     } catch (err) {
       setError(err instanceof Error ? err.message : t("errorGeneric"))
     } finally {
@@ -127,12 +211,14 @@ export function MakeOfferDialog({
   const errCls = (bad: boolean) => (bad ? "border-destructive focus-visible:ring-destructive" : "")
 
   return (
-    <Dialog open={dealIds !== null} onOpenChange={(o) => { if (!o) close() }}>
+    <Dialog open={open} onOpenChange={(o) => { if (!o) close() }}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>{count > 1 ? t("titleMany", { count }) : t("title")}</DialogTitle>
+          <DialogTitle>
+            {isEdit ? t("editTitle") : count > 1 ? t("titleMany", { count }) : t("title")}
+          </DialogTitle>
           <DialogDescription>
-            {t("description")}
+            {isEdit ? t("editDescription") : t("description")}
           </DialogDescription>
         </DialogHeader>
 
@@ -220,7 +306,9 @@ export function MakeOfferDialog({
         <DialogFooter>
           <Button variant="outline" onClick={close} disabled={submitting}>{t("cancel")}</Button>
           <Button onClick={submit} disabled={submitting} className={missing ? "opacity-50" : ""}>
-            {submitting ? t("sending") : t("send")}
+            {submitting
+              ? isEdit ? t("savingEdit") : t("sending")
+              : isEdit ? t("saveEdit") : t("send")}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -66,7 +66,12 @@
     "cancel": "Annuler",
     "draftDeleted": "Brouillon supprimé",
     "deleteErr": "Impossible de supprimer le brouillon.",
-    "showing": "Affichage de {from} à {to} sur {total} dossiers"
+    "showing": "Affichage de {from} à {to} sur {total} dossiers",
+    "editDeal": "Modifier le dossier",
+    "deleteDeal": "Supprimer le dossier",
+    "deleteDealTitle": "Supprimer ce dossier ?",
+    "deleteDealConfirm": "Ceci supprime définitivement le dossier et toutes les offres reçues, et le retire du portail des prêteurs. Cette action est irréversible.",
+    "dealDeleted": "Dossier supprimé"
   },
   "feed": {
     "Residential": "Résidentiel",
@@ -228,7 +233,15 @@
     "sqFtValue": "{n} pi²",
     "acresValue": "{n} acres",
     "yearsValue": "{n} ans",
-    "pctValue": "{n}%"
+    "pctValue": "{n}%",
+    "fCreditIssues": "Problèmes de crédit",
+    "fCreditIssuesHint": "Cochez si vous NE voulez PAS inclure ce problème de crédit :",
+    "fDownPayment": "Source de la mise de fonds",
+    "fDownPaymentHint": "Cochez si vous NE voulez PAS inclure cette source de mise de fonds :",
+    "fAssetsLiquidMin": "Actifs liquides (min.)",
+    "fAssetsTotalMin": "Actifs totaux (min.)",
+    "fMaxDoorTitles": "Nombre de titres max. (portes)",
+    "fRequireNoExceptions": "Seulement les dossiers sans exception prêteur requise"
   },
   "maturingDeals": {
     "title": "Dossiers à échéance",
@@ -417,7 +430,8 @@
     "send": "Envoyer le message",
     "withdrawnToast": "Offre retirée avec succès.",
     "withdrawErr": "Impossible de retirer l'offre.",
-    "messageSent": "Message envoyé au courtier."
+    "messageSent": "Message envoyé au courtier.",
+    "editOffer": "Modifier l'offre"
   },
   "dealDetail": {
     "back": "Retour à la salle des dossiers",
@@ -439,7 +453,6 @@
     "ltv": "LTV",
     "product": "Produit",
     "closingDate": "Date de clôture",
-    "lenderConfirmed": "Prêteur confirmé",
     "offerAccepted": "Offre acceptée",
     "offerLine": "Offre n° {n} · {product}",
     "lender": "Prêteur",
@@ -452,9 +465,6 @@
     "days": "{n} j",
     "processingDays": "{n} jours",
     "bps": "{n} bps",
-    "invoiceGenerated": "Facture de frais de plateforme {number} générée",
-    "invoiceDetail": "{amount} $ ({bps} bps) · échéance {date}",
-    "confirmLender": "Confirmer le prêteur",
     "switchOffer": "Changer d'offre",
     "availableOffers": "Offres disponibles",
     "listedByArrival": "Classées par ordre d'arrivée (plus anciennes d'abord)",
@@ -464,17 +474,17 @@
     "offerDeclined": "Cette offre a été refusée",
     "acceptOffer": "Accepter l'offre",
     "acceptTitle": "Confirmer la sélection de l'offre",
-    "acceptBody": "Vous êtes sur le point d'accepter cette offre. Les autres offres en attente seront refusées. Vous pouvez encore changer (jusqu'à 2 fois par mois) avant de confirmer le prêteur.",
+    "acceptBody": "Vous êtes sur le point d'accepter cette offre. Les autres offres en attente seront refusées, l'identité du prêteur sera révélée et la facture de frais de plateforme sera générée immédiatement. Vous pouvez encore changer de prêteur jusqu'à 2 fois par mois civil.",
     "cancel": "Annuler",
     "confirmSelection": "Confirmer la sélection",
     "accepting": "Acceptation…",
-    "toastAccepted": "Offre acceptée. Confirmez le prêteur pour générer la facture.",
+    "toastAccepted": "Offre acceptée — prêteur révélé et facture de frais de plateforme générée.",
     "toastAcceptErr": "Impossible d'accepter l'offre.",
-    "toastConfirmed": "Prêteur confirmé. Facture de frais de plateforme générée.",
-    "toastConfirmErr": "Impossible de confirmer le prêteur.",
     "toastSwitched": "Acceptation annulée. Les offres sont de nouveau en révision.",
     "toastSwitchErr": "Impossible de changer.",
-    "toastSurvey": "Merci — votre sondage a été soumis."
+    "toastSurvey": "Merci — votre sondage a été soumis.",
+    "acceptedNoticeTitle": "Le prêteur a été avisé et la facture de frais de plateforme a été générée.",
+    "acceptedNoticeBody": "Si vous changez d'offre (max. 2 par mois civil), cette facture est supprimée et le portail du prêteur affiche l'offre comme refusée."
   },
   "invoices": {
     "title": "Factures",
@@ -919,7 +929,12 @@
     "lenderFeePctHint": "Information de tarification affichée au courtier à titre comparatif — n’affecte pas la facture.",
     "platformDeduction": "Frais de service {brand} (terme {term} ans)",
     "finalCommissionAmount": "Montant final de la commission",
-    "commissionFinePrint": "Le montant final de la commission affiché sur votre offre reflète la commission nette que vous recevrez. En acceptant cette soumission, vous autorisez irrévocablement le prêteur à déduire les frais de service applicables de {brand} de la commission brute payable relativement à cette transaction hypothécaire et à remettre ce montant directement à {brand}. Cette autorisation est accordée conformément aux modalités de service et y est assujettie."
+    "commissionFinePrint": "Le montant final de la commission affiché sur votre offre reflète la commission nette que vous recevrez. En acceptant cette soumission, vous autorisez irrévocablement le prêteur à déduire les frais de service applicables de {brand} de la commission brute payable relativement à cette transaction hypothécaire et à remettre ce montant directement à {brand}. Cette autorisation est accordée conformément aux modalités de service et y est assujettie.",
+    "editTitle": "Modifier l'offre",
+    "editDescription": "Modifiez votre offre en attente. Le courtier sera avisé du changement; votre identité reste cachée jusqu'à l'acceptation.",
+    "editSaved": "Offre mise à jour. Le courtier a été avisé.",
+    "saveEdit": "Enregistrer les modifications",
+    "savingEdit": "Enregistrement..."
   },
   "survey": {
     "title": "Sondage de clôture — {deal}",
@@ -1228,7 +1243,11 @@
     "infoDownPaymentNotesTitle": "Conseils pour les notes de mise de fonds",
     "infoDownPaymentNotes": "Veuillez commenter la source de la mise de fonds si elle est atypique de quelque façon que ce soit. Laissez vide si tout est standard.",
     "infoGeneralNotesTitle": "Conseils pour les notes générales",
-    "infoGeneralNotes": "Si vous avez besoin d’exceptions ou si vous avez d’autres renseignements que vous jugez essentiels à la décision d’envoyer une offre sur votre dossier, veuillez le noter ici. Si rien ne se démarque, laissez vide."
+    "infoGeneralNotes": "Si vous avez besoin d’exceptions ou si vous avez d’autres renseignements que vous jugez essentiels à la décision d’envoyer une offre sur votre dossier, veuillez le noter ici. Si rien ne se démarque, laissez vide.",
+    "editTitle": "Modifier le dossier",
+    "saveChanges": "Enregistrer les modifications",
+    "savingChanges": "Enregistrement...",
+    "dealUpdated": "Dossier mis à jour."
   },
   "admin": {
     "loading": "Chargement…",
