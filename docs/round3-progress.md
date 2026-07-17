@@ -5,14 +5,17 @@
 Issues/Down Payment Source junction tables), 37 (feed RPCs: multi-select columns + 2–14d Maturing
 window), 38 (`make_offer` + `lender_fee_pct`), 39 (`profiles_brokerage_admin_read` RLS policy).
 
-**Phase 2 (19 h): COMPLETE** — all 8 items landed. 6 buildable items as of 2026-07-15 (`pnpm check`
-green, full `pnpm smoke:quick` suite green 20/20 with functions served); the **rebrand + domain-connect**
-items closed 2026-07-17 (rebrand = the app-side text flip to LenderMatch™, no logo asset required;
-domain done at the infra level by the client). New migrations: 40 (edit submitted deal until first offer
-+ delete until accepted), 41 (`edit_offer`), 42 (one-step accept — `confirm_lender` dropped, switch
-deletes the invoice + no lender notify), 43 (Round 3 fields as saved-filter criteria + filtered-feed
-params). Migrations 40–43 applied to **staging** 2026-07-17 (QA'd on the `dev` branch, then merged to
-`staging`); NOT yet on prod.
+**Phase 2 (19 h): COMPLETE + LIVE ON PROD.** All 8 items landed. 6 buildable items as of 2026-07-15
+(`pnpm check` green, full `pnpm smoke:quick` suite green 20/20 with functions served); the **rebrand +
+domain-connect** items closed 2026-07-17 (rebrand = app-side flip to LenderMatch™; the client then supplied
+the logo, so headers render a `BrandMark` [icon + text], the favicon package is wired, and the invoice PDF
+carries the logo too; domain done at the infra level by the client). New migrations: 40 (edit submitted deal
+until first offer + delete until accepted), 41 (`edit_offer`), 42 (one-step accept — `confirm_lender` dropped,
+switch deletes the invoice + no lender notify), 43 (Round 3 fields as saved-filter criteria + filtered-feed
+params). **Deployed to BOTH staging AND prod 2026-07-17**: staging Phase 2 smoke QA 5/5 green, then migrations
+36–43 applied to prod (43/43, advisors 0 ERROR), `contact-us`/`invoice-pdf` deployed to prod, `staging`→`main`
+merged → `www.lendermatch.ca` live on Phase 1+2. ⚠️ Remaining manual step: the "Confirm signup" Auth email
+template (dashboard, not git) still says "Loan Link" on both envs.
 
 Tracks execution of `docs/LenderMatch_Round3_Change_Request.pdf` (Rev.3, firm 64 h, approved by the
 client in writing on 2026-07-13). Update the checkboxes as items land; keep `CLAUDE.md`'s "Wired /

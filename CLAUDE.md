@@ -283,10 +283,9 @@ Round 3 Create Deal fields as saved-filter criteria**: `saved_filters` gains `cr
 spouse-not-on-application / TransUnion], `assets_liquid_min`/`assets_total_min`/`max_door_titles` bounds +
 `require_no_exceptions`; `saved_filter_matches` enforces them null-safely [filter-only — the weighted match
 engine is untouched] and `open_deals_filtered`/`maturing_deals_filtered` gain the matching trailing params,
-the 4 flags riding the existing `p_others_excluded` key list). **⚠️ Hosted status: migrations 36–43 (Round 3
-Phase 1 + Phase 2) are applied to the STAGING hosted DB (36–39 on 2026-07-14, 40–43 on 2026-07-17) but NOT
-yet to prod** — promoting to prod = merge `staging`→`main` + apply 36–43 + deploy the `contact-us`/`invoice-pdf`
-functions to the prod Supabase (never without the user's go-ahead).
+the 4 flags riding the existing `p_others_excluded` key list). **Hosted status: migrations 36–43 (Round 3
+Phase 1 + Phase 2) are applied to BOTH staging AND prod** (staging: 36–39 on 2026-07-14, 40–43 on 2026-07-17;
+**prod: all 36–43 on 2026-07-17**, promoted with `contact-us`/`invoice-pdf` deployed + `main`→Vercel Production).
 
 **Wired to Supabase (real data + verified):** sign-in (role redirect) · **password reset** (**OTP-code flow**:
 `/forgot-password` is 2-step — email → `resetPasswordForEmail`, then a **6-digit code** + new password →
@@ -450,14 +449,14 @@ read it before touching hosted infra. Current state:
   framework `nextjs`.
 - **Branch/env model**: `staging` = **base dev branch** → Vercel Preview → **staging** Supabase; `main` = prod →
   Production → **prod** Supabase (merge `staging`→`main` ONLY to deploy prod). `NEXT_PUBLIC_*` are build-time.
-- **Status**: **both live.** **prod** live at **`www.lendermatch.ca`** (bring-up 2026-07-11: env vars +
-  functions/secrets/vault/auth + admin `admin@lendermatch.ca` + email channel verified) — currently on the
-  **pre-Phase-1 baseline** (through `decline_deal`). **staging** live + seeded at **`staging.lendermatch.ca`**
-  (`/sign-in` 200; demo accounts `Test1234!`) and now **ahead of prod by Round 3 Phase 1 + Phase 2** (migrations
-  36–43 + the `contact-us` edge fn + the `invoice-pdf` rebrand redeploy; Phase 1 on 2026-07-14, Phase 2 on
-  2026-07-17). **Promoting Phase 1+2 to prod = merge `staging`→`main`**, then apply 36–43 + deploy
-  `contact-us`/`invoice-pdf` to the prod Supabase (runbook §8). Old dev deployment (Supabase
-  `zyxfsewiejvtnhftnasu` + `loan-link-rho.vercel.app` + GitLab) is pre-migration and retired.
+- **Status**: **both live and on Round 3 Phase 1 + Phase 2 (incl. the LenderMatch™ rebrand + logo/favicon).**
+  **prod** live at **`www.lendermatch.ca`** (bring-up 2026-07-11; **promoted to Phase 1+2 on 2026-07-17**:
+  migrations 36–43 applied [43/43, advisors 0 ERROR], `contact-us` + `invoice-pdf` deployed, `main` @ `7058aa5`
+  → Vercel Production, renders "LenderMatch™" + logo). **staging** live + seeded at **`staging.lendermatch.ca`**
+  (`/sign-in` 200; demo accounts `Test1234!`), same `7058aa5`. main/staging/dev are all in sync at `7058aa5`.
+  ⚠️ **Still manual (dashboard, not git): the prod + staging "Confirm signup" Auth email templates still say
+  "Loan Link"** — update them to "LenderMatch™" in each Supabase dashboard (Auth → Email Templates). Old dev
+  deployment (Supabase `zyxfsewiejvtnhftnasu` + `loan-link-rho.vercel.app` + GitLab) is pre-migration and retired.
 
 The gotchas below still apply (and are folded into the runbook):
 - **Vercel framework preset** is pinned in **`vercel.json`** (`{"framework":"nextjs"}`). Without it the
