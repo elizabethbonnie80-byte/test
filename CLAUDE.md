@@ -78,11 +78,13 @@ Scope (grouped as in the proposal; track granular status in `docs/round3-progres
   free/low-tier usage monitored.
 
 **Consequences for current work:** the **rebrand Loan Link → LenderMatch™ is DONE** (Phase 2, 2026-07-17).
-Because the app-side brand is centralized in `lib/brand.ts` (see Conventions → Brand) and the headers render
-`BRAND` as **text** (no image logo is wired — `public/placeholder-logo.*` is unused), flipping `BRAND` to
+Because the app-side brand is centralized in `lib/brand.ts` (see Conventions → Brand), flipping `BRAND` to
 "LenderMatch™" + `DOMAIN` to "lendermatch.ca" propagated the wordmark app-wide; the `invoice-pdf` edge fn's
-`BRAND` and the `confirmation.html` Auth email template were synced by hand. An optional image logo can be
-added later if the client supplies one. The list-window thresholds (OQ#18), the Confirm-Lender removal
+`BRAND` and the `confirmation.html` Auth email template were synced by hand. The client later supplied the
+logo asset, so the headers now render a shared **`BrandMark`** (`components/brand-mark.tsx` = the node logo
+`public/lendermatch-logo.png` + the `BRAND` text) and the favicon package lives in `public/` (wired via
+`app/layout.tsx` `metadata.icons` + `site.webmanifest`); PDFs/other non-header spots keep the text wordmark.
+The list-window thresholds (OQ#18), the Confirm-Lender removal
 (OQ#21), and the Contact-Us wiring are Round 3 items implemented per-phase — see `docs/round3-progress.md`
 for exact status; don't re-derive scope from `open-questions.md` for these three, Round 3 supersedes them.
 
@@ -661,9 +663,12 @@ on several sets — any data migration must map **by display label** using the t
   `{brand}` placeholder + interpolation (see `footer.rights`). The shared `AuthHeader` uses it (the app-wide
   `SiteFooter` was removed — client mockup).
   The **Round 3 rebrand (Loan Link → LenderMatch™) is DONE** (Phase 2, 2026-07-17): `BRAND` = "LenderMatch™"
-  and `DOMAIN` = "lendermatch.ca". Headers render `BRAND` as text (no image logo wired; `public/placeholder-logo.*`
-  unused). Two out-of-app copies are synced by hand — the `invoice-pdf` edge fn's `BRAND` and the
-  `confirmation.html` Auth email template — so keep those in step if `BRAND` ever changes again.
+  and `DOMAIN` = "lendermatch.ca". The client supplied the logo, so every header renders the shared
+  **`BrandMark`** (`components/brand-mark.tsx` = `public/lendermatch-logo.png` node icon + the `BRAND` text —
+  use it instead of printing `BRAND` bare in a header); the favicon package sits in `public/`, wired via
+  `app/layout.tsx` `metadata.icons` + `/site.webmanifest`. Non-header spots (PDFs, emails) keep the text
+  wordmark. Two out-of-app copies of the text are synced by hand — the `invoice-pdf` edge fn's `BRAND` and
+  the `confirmation.html` Auth email template — so keep those in step if `BRAND` ever changes again.
 - New tables need: migration + RLS policy + TypeScript types + (if user-facing) query helper in `lib/`.
 
 ## What NOT to do

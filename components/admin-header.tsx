@@ -14,7 +14,7 @@ import { createClient } from '@/lib/supabase/client'
 import { NotificationBell } from '@/components/notification-bell'
 import { LocaleSwitcher } from '@/components/locale-switcher'
 import { useT } from '@/components/i18n-provider'
-import { BRAND } from '@/lib/brand'
+import { BrandMark } from '@/components/brand-mark'
 
 type NavLink = { key: string; href: string }
 type NavGroup = { group: string; items: NavLink[] }
@@ -66,8 +66,8 @@ export function AdminHeader() {
     <header className="bg-card border-b border-border sticky top-0 z-50">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-4 h-16">
-          <Link href="/admin/lender-approvals" className="text-xl font-bold text-primary shrink-0">
-            {BRAND} <span className="text-muted-foreground font-normal text-sm">{t('admin')}</span>
+          <Link href="/admin/lender-approvals" className="flex items-center text-xl font-bold text-primary shrink-0">
+            <BrandMark /> <span className="ml-1 text-muted-foreground font-normal text-sm">{t('admin')}</span>
           </Link>
 
           <nav className="flex items-center justify-center gap-0.5 flex-1">

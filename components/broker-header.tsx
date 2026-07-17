@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 import { NotificationBell } from '@/components/notification-bell'
 import { LocaleSwitcher } from '@/components/locale-switcher'
 import { useT } from '@/components/i18n-provider'
-import { BRAND } from '@/lib/brand'
+import { BrandMark } from '@/components/brand-mark'
 
 const NAV = [
   { key: 'createDeal', href: '/create-deal' },
@@ -36,7 +36,7 @@ export function BrokerHeader() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/deal-room" className="text-xl font-bold text-primary flex-shrink-0">
-            {BRAND}
+            <BrandMark />
           </Link>
 
           {/* Navigation Links */}
