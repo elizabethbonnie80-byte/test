@@ -339,7 +339,9 @@ on / chat about — near-closing / near-COF deals via `lender_can_see_deal`; adm
 RLS-scoped by audience — a broker sees broker FAQs, a lender lender FAQs) · **invoice PDF** (`invoice-pdf` edge function renders
 the platform-fee PDF with pdf-lib, RLS-checks the caller owns the invoice, uploads to the private
 `invoices` bucket, stamps `pdf_path`, returns a host-relative signed path the client prepends its public
-URL to; "Download PDF" wired on lender/invoices — needs functions served, see below) · **closing survey**
+URL to; "Download PDF" wired on lender/invoices — needs functions served, see below. **Round 3 rebrand:** the
+header draws the LenderMatch™ node logo — the 96×96 PNG inlined as base64 [`LOGO_PNG_B64`, decoded via
+`atob`→`embedPng`, kept self-contained] — next to the `BRAND` text) · **closing survey**
 (the `trigger_closing_surveys` cron creates a survey + notification when a confirmed deal reaches its
 closing date; the broker completes it from a prompt on deal-detail — and from a banner on the deal-room
 (`listPendingSurveys`) — via `components/survey-dialog.tsx` → `submit_survey` RPC. Q0 "did it close with
@@ -631,8 +633,10 @@ on several sets — any data migration must map **by display label** using the t
   (v3 used pointer), so `globals.css` has a `@layer base` rule restoring `cursor: pointer` on buttons +
   the Radix interactive roles (menuitem/option/tab/switch/checkbox/radio) app-wide — don't remove it.
   Shared primitives to reuse: **`PasswordInput`** (`components/ui/password-input.tsx` — show/hide eye;
-  used on sign-in/sign-up/reset-password) and **`RowActions`** (`components/row-actions.tsx` — the
-  "Actions ▾" dropdown that replaces stacked per-row buttons, used across the admin tables + lender/invoices).
+  used on sign-in/sign-up/reset-password), **`RowActions`** (`components/row-actions.tsx` — the
+  "Actions ▾" dropdown that replaces stacked per-row buttons, used across the admin tables + lender/invoices),
+  and **`BrandMark`** (`components/brand-mark.tsx` — the LenderMatch™ logo + `BRAND` text; use it in every
+  header instead of printing `BRAND` bare).
   **`useLenderDealFeed`** (`hooks/use-lender-deal-feed.ts`) holds ALL the shared New Deals + Maturing feed
   logic (fetch/filters/saved-filter chips/selection/bulk actions/pagination/decline/message) — the two pages
   keep only their distinct cards ("new this week" badge vs match-% legend/badge); **`filter-fields.tsx`**
@@ -665,9 +669,11 @@ on several sets — any data migration must map **by display label** using the t
   and `DOMAIN` = "lendermatch.ca". The client supplied the logo, so every header renders the shared
   **`BrandMark`** (`components/brand-mark.tsx` = `public/lendermatch-logo.png` node icon + the `BRAND` text —
   use it instead of printing `BRAND` bare in a header); the favicon package sits in `public/`, wired via
-  `app/layout.tsx` `metadata.icons` + `/site.webmanifest`. Non-header spots (PDFs, emails) keep the text
-  wordmark. Two out-of-app copies of the text are synced by hand — the `invoice-pdf` edge fn's `BRAND` and
-  the `confirmation.html` Auth email template — so keep those in step if `BRAND` ever changes again.
+  `app/layout.tsx` `metadata.icons` + `/site.webmanifest`. Non-header spots keep the text wordmark, but the
+  invoice PDF ALSO draws the logo (base64-inlined `LOGO_PNG_B64` in the `invoice-pdf` fn). Copies synced by
+  hand on a rebrand — the `invoice-pdf` edge fn's `BRAND` **and** its `LOGO_PNG_B64`, plus the
+  `confirmation.html` Auth email template (dashboard-configured on hosted) — so keep those in step if the
+  brand/logo ever changes again.
 - New tables need: migration + RLS policy + TypeScript types + (if user-facing) query helper in `lib/`.
 
 ## What NOT to do
