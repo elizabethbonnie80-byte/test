@@ -77,15 +77,14 @@ Scope (grouped as in the proposal; track granular status in `docs/round3-progres
   Supabase Storage, Resend email, Vercel + Supabase domain) — no Bubble plan / Workload-Unit budget applies;
   free/low-tier usage monitored.
 
-**Consequences for current work:** the interim brand stays **Loan Link** until the Phase 2 rebrand item is
-actually executed (it needs the client's LenderMatch™ logo asset + confirmation of final brand copy — see
-`docs/round3-progress.md`). The app-side rebrand is **pre-wired to be a one-line change**: brand
-name/logo/support-email/domain are centralized in `lib/brand.ts` (see Conventions → Brand), so flipping
-`BRAND` to "LenderMatch™" (+ swapping the logo asset + the `invoice-pdf` edge fn's `BRAND`) propagates
-everywhere — do this as part of the Phase 2 rebrand task, not ahead of it. The list-window thresholds
-(OQ#18), the Confirm-Lender removal (OQ#21), and the Contact-Us wiring are Round 3 items now being
-implemented per-phase — see `docs/round3-progress.md` for exact status; don't re-derive scope from
-`open-questions.md` for these three, Round 3 supersedes them.
+**Consequences for current work:** the **rebrand Loan Link → LenderMatch™ is DONE** (Phase 2, 2026-07-17).
+Because the app-side brand is centralized in `lib/brand.ts` (see Conventions → Brand) and the headers render
+`BRAND` as **text** (no image logo is wired — `public/placeholder-logo.*` is unused), flipping `BRAND` to
+"LenderMatch™" + `DOMAIN` to "lendermatch.ca" propagated the wordmark app-wide; the `invoice-pdf` edge fn's
+`BRAND` and the `confirmation.html` Auth email template were synced by hand. An optional image logo can be
+added later if the client supplies one. The list-window thresholds (OQ#18), the Confirm-Lender removal
+(OQ#21), and the Contact-Us wiring are Round 3 items implemented per-phase — see `docs/round3-progress.md`
+for exact status; don't re-derive scope from `open-questions.md` for these three, Round 3 supersedes them.
 
 ## Stack
 
@@ -282,9 +281,10 @@ Round 3 Create Deal fields as saved-filter criteria**: `saved_filters` gains `cr
 spouse-not-on-application / TransUnion], `assets_liquid_min`/`assets_total_min`/`max_door_titles` bounds +
 `require_no_exceptions`; `saved_filter_matches` enforces them null-safely [filter-only — the weighted match
 engine is untouched] and `open_deals_filtered`/`maturing_deals_filtered` gain the matching trailing params,
-the 4 flags riding the existing `p_others_excluded` key list). **⚠️ Hosted status: migrations 36–39 (Phase 1)
-are applied to the STAGING hosted DB (2026-07-14) but NOT yet to prod; 40–43 (Phase 2) are applied locally
-only** — push to staging/prod is a deploy step (never without the user's go-ahead).
+the 4 flags riding the existing `p_others_excluded` key list). **⚠️ Hosted status: migrations 36–43 (Round 3
+Phase 1 + Phase 2) are applied to the STAGING hosted DB (36–39 on 2026-07-14, 40–43 on 2026-07-17) but NOT
+yet to prod** — promoting to prod = merge `staging`→`main` + apply 36–43 + deploy the `contact-us`/`invoice-pdf`
+functions to the prod Supabase (never without the user's go-ahead).
 
 **Wired to Supabase (real data + verified):** sign-in (role redirect) · **password reset** (**OTP-code flow**:
 `/forgot-password` is 2-step — email → `resetPasswordForEmail`, then a **6-digit code** + new password →
@@ -451,9 +451,10 @@ read it before touching hosted infra. Current state:
 - **Status**: **both live.** **prod** live at **`www.lendermatch.ca`** (bring-up 2026-07-11: env vars +
   functions/secrets/vault/auth + admin `admin@lendermatch.ca` + email channel verified) — currently on the
   **pre-Phase-1 baseline** (through `decline_deal`). **staging** live + seeded at **`staging.lendermatch.ca`**
-  (`/sign-in` 200; demo accounts `Test1234!`) and now **ahead of prod by Round 3 Phase 1** (migrations 36–39 +
-  the new `contact-us` edge fn, deployed 2026-07-14). **Promoting Phase 1 to prod = merge `staging`→`main`**,
-  then apply 36–39 + deploy `contact-us` to the prod Supabase (runbook §8). Old dev deployment (Supabase
+  (`/sign-in` 200; demo accounts `Test1234!`) and now **ahead of prod by Round 3 Phase 1 + Phase 2** (migrations
+  36–43 + the `contact-us` edge fn + the `invoice-pdf` rebrand redeploy; Phase 1 on 2026-07-14, Phase 2 on
+  2026-07-17). **Promoting Phase 1+2 to prod = merge `staging`→`main`**, then apply 36–43 + deploy
+  `contact-us`/`invoice-pdf` to the prod Supabase (runbook §8). Old dev deployment (Supabase
   `zyxfsewiejvtnhftnasu` + `loan-link-rho.vercel.app` + GitLab) is pre-migration and retired.
 
 The gotchas below still apply (and are folded into the runbook):
@@ -659,8 +660,10 @@ on several sets — any data migration must map **by display label** using the t
   identical per locale). Reference `BRAND` in components; for translated copy that embeds it, use a
   `{brand}` placeholder + interpolation (see `footer.rights`). The shared `AuthHeader` uses it (the app-wide
   `SiteFooter` was removed — client mockup).
-  This makes the **Round 3 rebrand (Loan Link → LenderMatch™) a one-line change** in `lib/brand.ts` (+ logo
-  asset + keep the `invoice-pdf` edge function's `BRAND` in sync). Interim value stays "Loan Link".
+  The **Round 3 rebrand (Loan Link → LenderMatch™) is DONE** (Phase 2, 2026-07-17): `BRAND` = "LenderMatch™"
+  and `DOMAIN` = "lendermatch.ca". Headers render `BRAND` as text (no image logo wired; `public/placeholder-logo.*`
+  unused). Two out-of-app copies are synced by hand — the `invoice-pdf` edge fn's `BRAND` and the
+  `confirmation.html` Auth email template — so keep those in step if `BRAND` ever changes again.
 - New tables need: migration + RLS policy + TypeScript types + (if user-facing) query helper in `lib/`.
 
 ## What NOT to do

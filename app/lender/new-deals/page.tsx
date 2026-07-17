@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import Link from 'next/link'
 import { LenderHeader } from '@/components/lender-header'
@@ -42,7 +42,7 @@ import {
   Loader2,
 } from 'lucide-react'
 
-// â”€â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Constants ────────────────────────────────────────────────────────────────
 
 const ITEMS_PER_PAGE = FEED_ITEMS_PER_PAGE
 
@@ -59,7 +59,7 @@ function sortByClosing(deals: LenderDealListItem[]): LenderDealListItem[] {
   })
 }
 
-// â”€â”€â”€ Main page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function NewDealsPage() {
   const t = useT('newDeals')
@@ -132,7 +132,7 @@ export default function NewDealsPage() {
             )}
           </div>
 
-          {/* Saved filters row â€” the lender's real DB filters (created/edited in Settings). Clicking
+          {/* Saved filters row — the lender's real DB filters (created/edited in Settings). Clicking
               one narrows the feed server-side; clicking the active one clears it. */}
           <div className="flex items-center gap-2 overflow-x-auto pb-0.5">
             <span className="flex items-center gap-1 text-xs text-muted-foreground whitespace-nowrap shrink-0">
@@ -320,7 +320,7 @@ export default function NewDealsPage() {
                     )}
                   </div>
 
-                  {/* Card body â€” property / deal / qualifying information */}
+                  {/* Card body — property / deal / qualifying information */}
                   <div className="p-6">
                     <LenderDealDetailSections deal={deal} />
                   </div>
@@ -380,7 +380,7 @@ export default function NewDealsPage() {
         </p>
       </main>
 
-      {/* â”€â”€ Decline confirmation â”€â”€ */}
+      {/* ── Decline confirmation ── */}
       <AlertDialog open={!!declineTarget} onOpenChange={() => setDeclineTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -403,7 +403,7 @@ export default function NewDealsPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* â”€â”€ Message modal â”€â”€ */}
+      {/* ── Message modal ── */}
       <AlertDialog open={!!messageTarget} onOpenChange={() => { setMessageTarget(null); setMessageShowError(false) }}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -441,7 +441,7 @@ export default function NewDealsPage() {
       {/* Make Offer dialog (shared component: form + anti-contact + make_offer) */}
       <MakeOfferDialog dealIds={offerTarget} prefillProduct={offerPrefillProduct} onClose={() => setOfferTarget(null)} onSuccess={onOfferSent} />
 
-      {/* Filters sidepanel â€” full-criteria (province â†’ the 20 "Others" checkboxes), matching the
+      {/* Filters sidepanel — full-criteria (province → the 20 "Others" checkboxes), matching the
           client's reference Bubble panel. */}
       <DealFiltersSidepanel
         open={showFilters}

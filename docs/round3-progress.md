@@ -5,13 +5,14 @@
 Issues/Down Payment Source junction tables), 37 (feed RPCs: multi-select columns + 2–14d Maturing
 window), 38 (`make_offer` + `lender_fee_pct`), 39 (`profiles_brokerage_admin_read` RLS policy).
 
-**Phase 2 (19 h): all buildable items COMPLETE** as of 2026-07-15 — 6 of 8 items landed (`pnpm check`
-green, full `pnpm smoke:quick` suite green 20/20 with functions served); the remaining 2 (rebrand +
-domain connect) stay **blocked on client input** (see Blockers below). New migrations: 40 (edit
-submitted deal until first offer + delete until accepted), 41 (`edit_offer`), 42 (one-step accept —
-`confirm_lender` dropped, switch deletes the invoice + no lender notify), 43 (Round 3 fields as
-saved-filter criteria + filtered-feed params). Migrations 40–43 are applied **locally only** — not yet
-pushed to the staging/prod hosted DBs.
+**Phase 2 (19 h): COMPLETE** — all 8 items landed. 6 buildable items as of 2026-07-15 (`pnpm check`
+green, full `pnpm smoke:quick` suite green 20/20 with functions served); the **rebrand + domain-connect**
+items closed 2026-07-17 (rebrand = the app-side text flip to LenderMatch™, no logo asset required;
+domain done at the infra level by the client). New migrations: 40 (edit submitted deal until first offer
++ delete until accepted), 41 (`edit_offer`), 42 (one-step accept — `confirm_lender` dropped, switch
+deletes the invoice + no lender notify), 43 (Round 3 fields as saved-filter criteria + filtered-feed
+params). Migrations 40–43 applied to **staging** 2026-07-17 (QA'd on the `dev` branch, then merged to
+`staging`); NOT yet on prod.
 
 Tracks execution of `docs/LenderMatch_Round3_Change_Request.pdf` (Rev.3, firm 64 h, approved by the
 client in writing on 2026-07-13). Update the checkboxes as items land; keep `CLAUDE.md`'s "Wired /
@@ -87,10 +88,14 @@ because it's the highest-risk/most technical content (documents, AI matching, au
       Filters sidepanel gains Credit Issues + Down Payment Source exclusion grids, the 4 new "Others" flags,
       liquid/total asset minimums, max door titles, and a "no exceptions only" checkbox — saved-filter chips
       created from the panel enforce them too. Covered in `smoke-open-filtered`.
-- [ ] Rebrand Loan Link → LenderMatch™ across app + emails (flip `lib/brand.ts` `BRAND` + logo asset +
-      `invoice-pdf` edge fn `BRAND` — needs the client's logo asset first) — **BLOCKED on client**
-- [ ] Connect lendermatch.ca domain (Vercel domain + Supabase Auth redirect URLs — needs client's domain access)
-      — **BLOCKED on client**
+- [x] Rebrand Loan Link → LenderMatch™ across app + emails (2026-07-17) — `lib/brand.ts` `BRAND` →
+      "LenderMatch™" + `DOMAIN` → "lendermatch.ca"; `invoice-pdf` edge fn `BRAND`; `confirmation.html`
+      Auth email template. The wordmark is TEXT (headers render `{BRAND}`; `public/placeholder-logo.*` is
+      unused), so no logo asset was required. An optional image logo can be added later if the client
+      supplies one. ⚠️ Hosted: redeploy `invoice-pdf`; mirror the Confirm-signup template in each
+      Supabase dashboard (Auth → Email Templates).
+- [x] Connect lendermatch.ca domain — done at the infra level (Vercel domain + Supabase Auth redirect URLs;
+      confirmed by the client). The app-side `DOMAIN` constant flipped with the rebrand above.
 
 ## Phase 3 — Heavy features (24 h)
 
@@ -111,5 +116,5 @@ because it's the highest-risk/most technical content (documents, AI matching, au
 
 ## Blockers / needs client input
 
-- LenderMatch™ logo asset + final brand copy (blocks the Phase 2 rebrand item)
-- lendermatch.ca domain access (blocks the Phase 2 domain-connect item)
+- None for Phase 2 (rebrand + domain both closed 2026-07-17). Optional: a LenderMatch™ **image** logo
+  asset if the client wants a graphical wordmark instead of the current text one.

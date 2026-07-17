@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import Link from 'next/link'
 import { LenderHeader } from '@/components/lender-header'
@@ -41,11 +41,11 @@ import {
   Loader2,
 } from 'lucide-react'
 
-// â”€â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Constants ────────────────────────────────────────────────────────────────
 
 const ITEMS_PER_PAGE = FEED_ITEMS_PER_PAGE
 
-// â”€â”€â”€ Helpers (maturing-only card styling) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Helpers (maturing-only card styling) ──────────────────────────────────────
 
 function daysUntil(dateStr: string | null): number {
   if (!dateStr) return 0
@@ -74,7 +74,7 @@ function closingStyle(days: number): string {
   return 'text-amber-600 font-medium'
 }
 
-// â”€â”€â”€ Main page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function MaturingDealsPage() {
   const t = useT('maturingDeals')
@@ -99,7 +99,7 @@ export default function MaturingDealsPage() {
     t,
     fetchAll: listMaturingDeals,
     fetchFiltered: listMaturingDealsFiltered,
-    refetchOnSaveFilter: true, // saving a filter changes match-% scoring â†’ reflect it
+    refetchOnSaveFilter: true, // saving a filter changes match-% scoring → reflect it
   })
 
   // Match-band tallies for the color legend (maturing-only; over the full server-scoped feed).
@@ -174,7 +174,7 @@ export default function MaturingDealsPage() {
             )}
           </div>
 
-          {/* Saved filters row â€” the lender's real DB filters (created/edited in Settings). Clicking
+          {/* Saved filters row — the lender's real DB filters (created/edited in Settings). Clicking
               one narrows the feed server-side; clicking the active one clears it. */}
           <div className="flex items-center gap-2 overflow-x-auto pb-0.5">
             <span className="flex items-center gap-1 text-xs text-muted-foreground whitespace-nowrap shrink-0">
@@ -302,7 +302,7 @@ export default function MaturingDealsPage() {
                     isActioned ? 'opacity-40' : ''
                   }`}
                 >
-                  {/* Card header â€” match color lives here only, not on the whole card */}
+                  {/* Card header — match color lives here only, not on the whole card */}
                   <div
                     className={`flex items-center justify-between gap-3 px-6 py-4 border-b border-border flex-wrap ${
                       isActioned ? 'bg-muted' : cardStyle(deal.match)
@@ -377,7 +377,7 @@ export default function MaturingDealsPage() {
                     </div>
                   )}
 
-                  {/* Card body â€” property / deal / qualifying information */}
+                  {/* Card body — property / deal / qualifying information */}
                   <div className="p-6">
                     <LenderDealDetailSections deal={deal} />
                   </div>
@@ -434,10 +434,10 @@ export default function MaturingDealsPage() {
         </p>
       </main>
 
-      {/* â”€â”€ Make Offer (shared component: form + anti-contact + make_offer) â”€â”€ */}
+      {/* ── Make Offer (shared component: form + anti-contact + make_offer) ── */}
       <MakeOfferDialog dealIds={offerTarget} prefillProduct={offerPrefillProduct} onClose={() => setOfferTarget(null)} onSuccess={onOfferSent} />
 
-      {/* â”€â”€ Decline confirmation â”€â”€ */}
+      {/* ── Decline confirmation ── */}
       <AlertDialog open={!!declineTarget} onOpenChange={() => setDeclineTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -460,7 +460,7 @@ export default function MaturingDealsPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* â”€â”€ Message broker â”€â”€ */}
+      {/* ── Message broker ── */}
       <AlertDialog open={!!messageTarget} onOpenChange={() => { setMessageTarget(null); setMessageShowError(false) }}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -495,7 +495,7 @@ export default function MaturingDealsPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Filters sidepanel â€” same full-criteria panel as New Deals */}
+      {/* Filters sidepanel — same full-criteria panel as New Deals */}
       <DealFiltersSidepanel
         open={showFilters}
         onOpenChange={setShowFilters}

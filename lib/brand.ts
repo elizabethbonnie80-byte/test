@@ -3,13 +3,14 @@
 // Translated strings that embed the brand use a `{brand}` placeholder and interpolate BRAND (see the
 // footer copy), so the brand stays centralized even inside translated text.
 //
-// Round 3 (approved 2026-07-13) rebrand "Loan Link → LenderMatch™" is a one-line change here + swapping
-// the logo asset — do it as part of the Phase 2 rebrand task (needs the client's logo asset first, see
-// docs/round3-progress.md). SUPPORT_EMAIL flips now (Phase 1's standalone Contact-Us wiring item), ahead
-// of the full rebrand. DOMAIN flips with the Phase 2 domain-connect item (needs client's domain access).
+// Round 3 (approved 2026-07-13) rebrand "Loan Link → LenderMatch™" — DONE (Phase 2, 2026-07-17). The
+// headers render BRAND as text (no image logo is wired; public/placeholder-logo.* is unused), so this
+// single flip propagates the wordmark everywhere the app references BRAND (headers, footer, and any
+// translated copy that embeds {brand}). The invoice-pdf edge fn's BRAND and the confirmation.html Auth
+// email template are synced by hand (edge fns / email templates can't import from the Next app).
 // COPYRIGHT_HOLDER (the founders) does NOT change with the rebrand.
 
-export const BRAND = "Loan Link" // Phase 2 rebrand item — flips to "LenderMatch™" with the logo asset
+export const BRAND = "LenderMatch™"
 export const COPYRIGHT_HOLDER = "Elizabeth Iginla and Bonnie Casault" // footer © line (the founders)
 export const SUPPORT_EMAIL = "support@lendermatch.ca"
-export const DOMAIN = "loanlink.ca" // Phase 2 domain-connect item — flips to "lendermatch.ca"
+export const DOMAIN = "lendermatch.ca"

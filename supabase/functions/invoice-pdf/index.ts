@@ -19,7 +19,7 @@ const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
 const BUCKET = "invoices"
 // Mirrors lib/brand.ts (can't import it — this is a separate Deno bundle). Round 3 rebrand: keep in sync.
-const BRAND = "Loan Link"
+const BRAND = "LenderMatch™"
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
