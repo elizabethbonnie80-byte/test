@@ -77,6 +77,30 @@ async function main() {
   await svc.from("deal_residency_statuses").insert({ deal_id: deal.id, residency: "canadian_citizen" })
   await svc.from("deal_income_types").insert({ deal_id: deal.id, income_type: "salary_no_ot" })
 
+  // ── 4. Two placeholder lender logos for the sign-in marquee (Phase 3 item 5) ──
+  // Generated here rather than committed as binaries — they only exist to prove the strip works.
+  const logo = (label, color) =>
+    `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="60" viewBox="0 0 240 60">` +
+    `<rect width="240" height="60" rx="8" fill="${color}"/>` +
+    `<text x="120" y="38" font-family="Helvetica,Arial" font-size="24" font-weight="bold" ` +
+    `fill="white" text-anchor="middle">${label}</text></svg>`
+
+  const LOGOS = [
+    { name: "Merix Financial", file: "qa-merix.svg", body: logo("MERIX", "#1e3a8a") },
+    { name: "RFA", file: "qa-rfa.svg", body: logo("RFA", "#0f766e") },
+    { name: "RMG", file: "qa-rmg.svg", body: logo("RMG", "#7c2d12") },
+  ]
+  for (const [i, l] of LOGOS.entries()) {
+    await svc.from("lender_logos").delete().eq("storage_path", l.file)
+    await svc.storage.from("lender-logos").upload(l.file, new Blob([l.body], { type: "image/svg+xml" }), {
+      contentType: "image/svg+xml",
+      upsert: true,
+    })
+    const { error } = await svc.from("lender_logos")
+      .insert({ name: l.name, storage_path: l.file, sort_order: i + 1 })
+    if (error) throw new Error(`logo ${l.name}: ${error.message}`)
+  }
+
   console.log(`
 Phase 3 QA fixture ready (local).
 
@@ -84,6 +108,9 @@ Phase 3 QA fixture ready (local).
   Auto-offer     ${AUTO_OFFER_NAME}   4.79% · 45 bps · 120-day lock · Lender Fee 0.5%   [${auto.id}]
   Broker draft   Ottawa, ON · $480k · 5-yr fixed · Prime · no notes · no-exceptions checked
                  http://localhost:3010/create-deal?draft=${deal.id}
+
+  Login logos   ${LOGOS.map((l) => l.name).join(" · ")}
+                 → http://localhost:3010/sign-in (scrolling strip) · manage at /admin/logos
 
   Borrower on file: ${BORROWER.first} ${BORROWER.last}
   → for the AI name-match, upload a photo ID whose name reads "Mary Gonzalez" (preferred-name

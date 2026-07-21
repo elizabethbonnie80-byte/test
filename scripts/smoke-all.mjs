@@ -39,6 +39,7 @@ const SMOKES = [
   "smoke-signup.mjs",
   "smoke-admin.mjs",
   "smoke-faqs.mjs",
+  "smoke-logos.mjs",
   "smoke-surveys.mjs",
   "smoke-penalty.mjs",
   "smoke-password-reset.mjs",

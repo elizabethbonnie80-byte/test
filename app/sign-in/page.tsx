@@ -13,6 +13,7 @@ import { Toaster, toast } from "sonner"
 import { createClient } from "@/lib/supabase/client"
 import { getGateProfile } from "@/lib/queries/profile"
 import { AuthHeader } from "@/components/auth-header"
+import { LogoMarquee } from "@/components/logo-marquee"
 import { useT } from "@/components/i18n-provider"
 
 /** Landing route per role after sign-in. */
@@ -132,7 +133,8 @@ export default function SignInPage() {
           </form>
         </div>
 
-
+        {/* Round 3 Phase 3: admin-maintained lender logos (renders nothing until one exists) */}
+        <LogoMarquee />
       </main>
     </div>
   )

@@ -47,6 +47,7 @@ const NAV: NavEntry[] = [
     items: [
       { key: 'faqs', href: '/admin/faqs' },
       { key: 'legal', href: '/admin/legal' },
+      { key: 'logos', href: '/admin/logos' },
     ],
   },
 ]

@@ -137,3 +137,25 @@
     cursor: pointer;
   }
 }
+
+/* Round 3 Phase 3 — the sign-in page's scrolling lender logos. The track holds the list TWICE, so
+   translating it by exactly -50% loops seamlessly. Motion is opt-out: with prefers-reduced-motion the
+   strip simply sits still (the duplicate half is harmless, it just scrolls out of the overflow). */
+@keyframes ll-marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+.ll-marquee-track {
+  animation: ll-marquee var(--ll-marquee-duration, 40s) linear infinite;
+}
+
+.ll-marquee:hover .ll-marquee-track {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ll-marquee-track {
+    animation: none;
+  }
+}

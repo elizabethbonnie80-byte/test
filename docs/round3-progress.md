@@ -105,6 +105,14 @@ because it's the highest-risk/most technical content (documents, AI matching, au
 - [x] Connect lendermatch.ca domain — done at the infra level (Vercel domain + Supabase Auth redirect URLs;
       confirmed by the client). The app-side `DOMAIN` constant flipped with the rebrand above.
 
+**Phase 3 (24 h): all 5 items COMPLETE on `dev`** (2026-07-21) — `pnpm check` green, `pnpm build` green,
+full smoke suite green (23/23 with the edge runtime served). New migrations: 45 (documents), 46 (AI
+name-match), 47 (auto-offers), 48 (prequal → live deal), 49 (feed RPCs expose `prequal`), 50 (login
+logos). ⚠️ **NOT deployed**: migrations 45–50 are applied to the LOCAL database only — staging and prod
+are still on Phase 1+2. Deploying is a separate, explicitly-authorised step (see `docs/DEPLOY_RUNBOOK.md`),
+and the new edge functions (`match-document-name`, `purge-documents`) plus the Vault config for the
+document-purge cron and the optional `APP_URL` secret need to go with it.
+
 ## Phase 3 — Heavy features (24 h)
 
 - [x] Document upload (consent PDF + photo ID) on the Property step; 120-day retention then auto-delete;
@@ -153,7 +161,17 @@ because it's the highest-risk/most technical content (documents, AI matching, au
       Make Offer dialog shows the **special prequal fine print**. i18n EN/FR. Covered by `smoke-prequal`
       (27 checks); suite 22/22 green. ⚠️ The fine-print COPY is ours, not the client's — confirm the exact
       wording with them (`makeOffer.prequalFinePrint`).
-- [ ] Scrolling lender logos on the login page + admin way to add more
+- [x] Scrolling lender logos on the login page + admin way to add more — migration 50 (`lender_logos`
+      table + a PUBLIC `lender-logos` Storage bucket; ACTIVE rows are **anon-readable** because the login
+      page is unauthenticated — same rationale as the published legal docs and the sign-up org dropdowns —
+      while every write, on the table and on the bucket objects, is `is_admin()`-only). Client:
+      `components/logo-marquee.tsx` (CSS marquee in `globals.css` — the track holds the list twice and
+      translates -50% for a seamless loop, pauses on hover, holds still under `prefers-reduced-motion`,
+      and renders NOTHING until a logo exists) on `/sign-in`, plus **`/admin/logos`** (upload, rename,
+      show/hide, reorder with ↑/↓, delete — deleting removes the image too) under the admin Content group.
+      `lib/queries/logos.ts` builds image URLs with `getPublicUrl` (a signed URL would expire on a public
+      page). i18n EN/FR. Covered by `smoke-logos` (15 checks — the anon/admin asymmetry: anon reads active
+      rows only and cannot write, a broker cannot rename/delete, admin sees hidden rows and reorders).
 
 ## Removed from scope (per client — do not build)
 

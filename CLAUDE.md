@@ -329,10 +329,14 @@ deal stays visible only to lenders that already bid, which covers the feeds + th
 at once; `submit_deal` now refuses a deal with **no property address unless it is a prequal** [OQ#41 /
 client feedback #7] and `accept_offer` refuses an **unconverted prequal** [the invoice needs a closing
 date]) · `49_round3_phase3_feeds_prequal` (the four lender feed RPCs gain a trailing `prequal` OUT column
-so the New Deals card can badge it and the offer dialog can show the prequal fine print).
+so the New Deals card can badge it and the offer dialog can show the prequal fine print) ·
+`50_round3_phase3_lender_logos` (**login-page lender logos**: `lender_logos` + a PUBLIC `lender-logos`
+bucket; ACTIVE rows are **anon-readable** because the sign-in page is unauthenticated, writes are
+`is_admin()`-only on both the table and the objects; managed at `/admin/logos`).
 **Hosted status: migrations 36–44 are
 applied to BOTH staging AND prod** (36–39 on 2026-07-14; 40–43 on 2026-07-17; **44 on 2026-07-21**);
-**45–49 are LOCAL ONLY so far** (Phase 3 in progress — not yet pushed to staging/prod).
+**45–50 are LOCAL ONLY** (Phase 3 is complete on `dev` but NOT deployed — staging/prod are still on
+Phase 1+2, and the `match-document-name`/`purge-documents` edge functions are undeployed too).
 
 **Wired to Supabase (real data + verified):** sign-in (role redirect) · **password reset** (**OTP-code flow**:
 `/forgot-password` is 2-step — email → `resetPasswordForEmail`, then a **6-digit code** + new password →
@@ -473,7 +477,9 @@ preview as Make Offer; `send_auto_offers` fires it inside `submit_deal`, Submitt
 with no address submits only as a prequal; lenders see a PREQUAL badge on the New Deals card and the special
 fine print in the Make Offer dialog; the broker's Deal Room "Move to Live Deal" action collects
 address + closing + COF via `convertPrequalToLive` → offers carry over and the deal never re-enters another
-lender's feed).
+lender's feed); **login-page lender logos** (`components/logo-marquee.tsx` scrolls the admin-maintained
+strip on `/sign-in` — CSS-only marquee, pauses on hover, still under `prefers-reduced-motion`, renders
+nothing when the list is empty — managed at **`/admin/logos`**: upload/rename/show-hide/reorder/delete).
 
 **Still mock / not built:** nothing currently tracked here — the last prototype (Contact-Us form submit)
 was wired in Round 3 Phase 1 (see below). (The **notification email channel** is now wired — see the
@@ -700,7 +706,8 @@ on several sets — any data migration must map **by display label** using the t
   the Round 3 **filter criteria** (`smoke-open-filtered`), **decline** off the feeds
   (`smoke-decline`), **bilateral blocking**
   (`smoke-blocking` — security invariant #2), anti-contact, notifications, messaging, saved-filter feeds,
-  sign-up, admin, FAQs, surveys, the rating penalty (effect + **survey→job computation**), and password
+  sign-up, admin, FAQs, the **login-page logos** (`smoke-logos` — the anon-reads-active-only /
+  admin-writes-only asymmetry), surveys, the rating penalty (effect + **survey→job computation**), and password
   reset. Pure helpers (`lib/csv`, `lib/status-styles`, `lib/enums`) have **Vitest** unit tests
   (`pnpm test`). `smoke-invoice-pdf` needs the edge runtime served (`pnpm functions:serve`), so it's
   the one expected red in a bare `pnpm smoke`. When an RPC signature changes, update its smoke — a smoke
