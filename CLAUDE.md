@@ -93,10 +93,12 @@ for exact status; don't re-derive scope from `open-questions.md` for these three
 After Phase 1+2 went live the client sent a 12-item revision list (source email:
 `docs/details_20_07.pdf`). It is tracked item-by-item in **[`docs/client-revisions-2026-07-20.md`](./docs/client-revisions-2026-07-20.md)**
 — read it before touching Create Deal labels, the lender approval/signup flow, or the admin portal.
-Shipped: the auth fixes (#11 idempotent approval, #12 both roles confirm email), the label revisions (#1
-Credit Issues hint removed, #2 "CCB (under 15 years old)", #3 "Borrowed Downpayment", #6 "Hobby
-Farm"/"Recreational Property"), #4 (assets always visible, mandatory only with Networth), and the two admin
-pages **#8 `/admin/brokers`** + **#9 `/admin/organizations`**. ⚠️ **#8/#9 needed NO migration** — the RLS was
+**Shipped and LIVE on BOTH staging and prod (2026-07-21, `81b297b`)**: the auth fixes (#11 idempotent
+approval — migration 44, #12 both roles confirm email), the label revisions (#1 Credit Issues hint removed,
+#2 "CCB (under 15 years old)", #3 "Borrowed Downpayment", #6 "Hobby Farm"/"Recreational Property"), #4
+(assets always visible, mandatory only with Networth), #10 (the client's admin account provisioned on
+staging), and the two admin pages **#8 `/admin/brokers`** + **#9 `/admin/organizations`** (both browser-QA'd
+on staging). ⚠️ **#8/#9 needed NO migration** — the RLS was
 already permissive for admins (`profiles_self_read` = `id = auth.uid() or is_admin()`, `profiles_admin_update`,
 the privilege guard's is_admin() exemption, and `lookup_write`/`inst_write` = `for all … using (is_admin())`);
 don't add RPCs for them. Still open: **#5** (merge the two "Passive" income types — BLOCKED on the client's

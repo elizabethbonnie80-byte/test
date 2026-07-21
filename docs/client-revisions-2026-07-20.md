@@ -9,6 +9,19 @@ This is a post-Round-3 feedback batch (NOT part of the Round 3 quote). Track sta
 then QA → merge to `staging` → deploy → promote to prod, per the usual flow. Do **not** touch Phase 3 items
 (#7) — the other dev owns the prequal flow.
 
+## Status (2026-07-21)
+
+**10 of 12 items are DONE and LIVE on both staging and prod** (`81b297b`; migration 44 applied to both).
+Only two remain, and neither is ours to finish right now:
+
+- **#5** — BLOCKED on the client. The question has been drafted and sent: which single label do the two
+  "Passive" income types collapse into? It also needs a data migration to move existing
+  `deal_income_types` rows off the retired value.
+- **#7** — belongs to the **Phase 3** prequal → live-deal flow (other dev).
+
+The client was told the rest of the batch ships alongside Phase 3, and that they can now re-test on
+staging with the same admin account as production.
+
 ## Legend
 
 `[ ]` todo · `[~]` in progress · `[x]` done · `[blocked]` needs input/other work
@@ -58,6 +71,16 @@ then QA → merge to `staging` → deploy → promote to prod, per the usual flo
   **Removal is a DEACTIVATE, never a delete** (profiles/deals hold FKs; `is_active = false` already hides the
   row from the sign-up dropdowns via the migration-18 anon policies). The `name` UNIQUE violation (23505) is
   surfaced as a friendly "that name is already in use".
+
+**Verified on staging in the browser (2026-07-21)**, as the admin: the new **Manage** nav group; brokers
+listed with their brokerage + search/filter; Make admin → badge flips to "Brokerage Admin" and the counter
+appears → Remove admin reverts. Organizations: add → Active with today's date; a duplicate name is rejected
+(dialog stays open, no extra row); the actions menu offers only Rename + Deactivate (no Delete);
+deactivating greys the row to "Inactive" (matching the hidden "Platform Administration" row); the Lenders
+tab behaves identically with a contextual "Add lender" button. All test data was cleaned up afterwards.
+⚠️ The duplicate-name TOAST itself was never captured on screen (sonner fades it too fast) — the rejection
+is proven by the absence of a duplicate row plus `smoke-admin` asserting the `23505` the UI maps to that
+message.
 
 ## C) Auth / lender approval — bugs (priority: block the client from testing the lender portal)
 
