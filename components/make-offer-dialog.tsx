@@ -100,12 +100,15 @@ export function MakeOfferDialog({
   dealIds,
   edit = null,
   prefillProduct = null,
+  prequal = false,
   onClose,
   onSuccess,
 }: {
   dealIds: string[] | null
   edit?: OfferEditTarget | null
   prefillProduct?: MortgageProduct | null
+  /** Round 3 Phase 3: the target deal is a prequal → show the special prequal fine print. */
+  prequal?: boolean
   onClose: () => void
   onSuccess: (ids: string[], message: string) => void
 }) {
@@ -221,6 +224,13 @@ export function MakeOfferDialog({
             {isEdit ? t("editDescription") : t("description")}
           </DialogDescription>
         </DialogHeader>
+
+        {/* Round 3 Phase 3: bidding on a prequal — the offer carries over when the deal goes live. */}
+        {prequal && !isEdit && (
+          <div className="rounded-md border border-sky-200 bg-sky-50 p-3 text-xs text-sky-900">
+            {t("prequalFinePrint")}
+          </div>
+        )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-2">

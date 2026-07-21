@@ -71,7 +71,21 @@
     "deleteDeal": "Delete Deal",
     "deleteDealTitle": "Delete this deal?",
     "deleteDealConfirm": "This permanently deletes the deal and any offers on it, and removes it from the lender portal. This cannot be undone.",
-    "dealDeleted": "Deal deleted"
+    "dealDeleted": "Deal deleted",
+    "moveToLiveDeal": "Move to Live Deal",
+    "prequalBadge": "Prequal",
+    "convertTitle": "Move {deal} to a live deal",
+    "convertDesc": "Add the property address and closing date. Offers already placed on this prequal carry over and stay acceptable — the deal will not re-enter the lender marketplace.",
+    "convertAddress": "Property Address",
+    "convertAddressPlaceholder": "123 Main Street, City, Province",
+    "convertClosing": "Closing Date",
+    "convertCof": "COF Date (if applicable)",
+    "convertCofHint": "Optional — the conditions-of-financing date.",
+    "convertNote": "Existing offers are kept exactly as they are and become acceptable once the deal is live.",
+    "convertConfirm": "Move to Live Deal",
+    "converting": "Moving…",
+    "convertDone": "{deal} is now a live deal.",
+    "convertErr": "Could not move the deal to a live deal."
   },
   "feed": {
     "Residential": "Residential",
@@ -241,7 +255,8 @@
     "fAssetsLiquidMin": "Liquid Assets (min)",
     "fAssetsTotalMin": "Total Assets (min)",
     "fMaxDoorTitles": "Max Titles on Doors",
-    "fRequireNoExceptions": "Only deals with no lender exceptions required"
+    "fRequireNoExceptions": "Only deals with no lender exceptions required",
+    "prequal": "PREQUAL"
   },
   "maturingDeals": {
     "title": "Maturing Deals",
@@ -593,7 +608,8 @@
     "typeSurveyPending": "Survey",
     "typeLenderApproved": "Account approved",
     "typeLenderRejected": "Account update",
-    "typeAutoOfferSent": "Auto-offer sent"
+    "typeAutoOfferSent": "Auto-offer sent",
+    "typePrequalConverted": "Prequal converted"
   },
   "settings": {
     "title": "Settings",
@@ -942,7 +958,8 @@
     "editDescription": "Update your pending offer. The broker will be notified of the change; your identity stays hidden until acceptance.",
     "editSaved": "Offer updated. The broker has been notified.",
     "saveEdit": "Save Changes",
-    "savingEdit": "Saving..."
+    "savingEdit": "Saving...",
+    "prequalFinePrint": "This is a prequalification. If you win, your offer carries over automatically when the broker adds the property address and closing date — the deal will not return to the marketplace. Rate-hold and conditions apply from the live-deal date."
   },
   "survey": {
     "title": "Closing Survey — {deal}",
@@ -1268,7 +1285,9 @@
     "editTitle": "Edit Deal",
     "saveChanges": "Save Changes",
     "savingChanges": "Saving...",
-    "dealUpdated": "Deal updated."
+    "dealUpdated": "Deal updated.",
+    "addressOrPrequal": "Add a property address, or check Prequal below.",
+    "addressPrequalHint": "Leave blank only for a prequal — you can add the address later with \"Move to Live Deal\"."
   },
   "admin": {
     "loading": "Loading…",

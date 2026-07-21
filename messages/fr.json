@@ -71,7 +71,21 @@
     "deleteDeal": "Supprimer le dossier",
     "deleteDealTitle": "Supprimer ce dossier ?",
     "deleteDealConfirm": "Ceci supprime définitivement le dossier et toutes les offres reçues, et le retire du portail des prêteurs. Cette action est irréversible.",
-    "dealDeleted": "Dossier supprimé"
+    "dealDeleted": "Dossier supprimé",
+    "moveToLiveDeal": "Convertir en dossier réel",
+    "prequalBadge": "Préqualification",
+    "convertTitle": "Convertir {deal} en dossier réel",
+    "convertDesc": "Ajoutez l’adresse de la propriété et la date de clôture. Les offres déjà déposées sur cette préqualification sont conservées et restent acceptables — le dossier ne réintègre pas le marché des prêteurs.",
+    "convertAddress": "Adresse de la propriété",
+    "convertAddressPlaceholder": "123, rue Principale, Ville, Province",
+    "convertClosing": "Date de clôture",
+    "convertCof": "Date de la COF (le cas échéant)",
+    "convertCofHint": "Facultatif — la date des conditions de financement.",
+    "convertNote": "Les offres existantes sont conservées telles quelles et deviennent acceptables une fois le dossier réel.",
+    "convertConfirm": "Convertir en dossier réel",
+    "converting": "Conversion…",
+    "convertDone": "{deal} est maintenant un dossier réel.",
+    "convertErr": "Impossible de convertir le dossier en dossier réel."
   },
   "feed": {
     "Residential": "Résidentiel",
@@ -241,7 +255,8 @@
     "fAssetsLiquidMin": "Actifs liquides (min.)",
     "fAssetsTotalMin": "Actifs totaux (min.)",
     "fMaxDoorTitles": "Nombre de titres max. (portes)",
-    "fRequireNoExceptions": "Seulement les dossiers sans exception prêteur requise"
+    "fRequireNoExceptions": "Seulement les dossiers sans exception prêteur requise",
+    "prequal": "PRÉQUAL"
   },
   "maturingDeals": {
     "title": "Dossiers à échéance",
@@ -593,7 +608,8 @@
     "typeSurveyPending": "Sondage",
     "typeLenderApproved": "Compte approuvé",
     "typeLenderRejected": "Mise à jour du compte",
-    "typeAutoOfferSent": "Offre automatique envoyée"
+    "typeAutoOfferSent": "Offre automatique envoyée",
+    "typePrequalConverted": "Préqualification convertie"
   },
   "settings": {
     "title": "Paramètres",
@@ -942,7 +958,8 @@
     "editDescription": "Modifiez votre offre en attente. Le courtier sera avisé du changement; votre identité reste cachée jusqu'à l'acceptation.",
     "editSaved": "Offre mise à jour. Le courtier a été avisé.",
     "saveEdit": "Enregistrer les modifications",
-    "savingEdit": "Enregistrement..."
+    "savingEdit": "Enregistrement...",
+    "prequalFinePrint": "Ceci est une préqualification. Si vous êtes retenu, votre offre est reportée automatiquement lorsque le courtier ajoute l’adresse et la date de clôture — le dossier ne revient pas sur le marché. La garantie de taux et les conditions s’appliquent à partir de la date du dossier réel."
   },
   "survey": {
     "title": "Sondage de clôture — {deal}",
@@ -1268,7 +1285,9 @@
     "editTitle": "Modifier le dossier",
     "saveChanges": "Enregistrer les modifications",
     "savingChanges": "Enregistrement...",
-    "dealUpdated": "Dossier mis à jour."
+    "dealUpdated": "Dossier mis à jour.",
+    "addressOrPrequal": "Ajoutez une adresse de propriété, ou cochez Préqualification ci-dessous.",
+    "addressPrequalHint": "Laissez vide uniquement pour une préqualification — vous pourrez ajouter l’adresse plus tard avec « Convertir en dossier réel »."
   },
   "admin": {
     "loading": "Chargement…",

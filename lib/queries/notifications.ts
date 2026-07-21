@@ -27,6 +27,7 @@ export const NOTIFICATION_TYPE_KEY: Record<NotificationType, string> = {
   lender_approved: "typeLenderApproved",
   lender_rejected: "typeLenderRejected",
   auto_offer_sent: "typeAutoOfferSent",
+  prequal_converted: "typePrequalConverted",
 }
 
 export type NotificationRole = "broker" | "lender" | "admin"
@@ -50,6 +51,8 @@ export function notificationHref(n: Pick<NotificationItem, "type" | "dealId">, r
     case "offer_switched":
     // The daily auto-offer digest: the offers it lists stay editable in Submitted Offers.
     case "auto_offer_sent":
+    // A prequal the lender bid on went live — their carried-over offer lives in Submitted Offers.
+    case "prequal_converted":
       return "/lender/submitted-offers"
     case "lender_approved":
     case "lender_rejected":

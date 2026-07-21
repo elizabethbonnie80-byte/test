@@ -138,8 +138,21 @@ because it's the highest-risk/most technical content (documents, AI matching, au
       + `components/auto-offer-manager.tsx` (lender Settings section, with the same bps-deduction preview
       as Make Offer), an "Auto" badge on Submitted Offers, i18n EN/FR. Covered by `smoke-auto-offer` (22
       checks incl. every negative gate); suite 20/21 (invoice-pdf red = local edge runtime not served).
-- [ ] Prequal → Live Deal flow: upload prequal, lenders bid w/ special fine print, "Move to Live Deal"
-      button adds address/closing/COF, existing offers carry over, no marketplace re-entry
+- [x] Prequal → Live Deal flow: upload prequal, lenders bid w/ special fine print, "Move to Live Deal"
+      button adds address/closing/COF, existing offers carry over, no marketplace re-entry — migration 48
+      (`deals.prequal_converted_at`; `convert_prequal_to_live(deal, address, closing, cof)` SECURITY DEFINER
+      [owner-gated, one-shot, notifies the bidding lenders via the new `prequal_converted` type without
+      leaking the address]; **no re-entry** folded into `lender_can_see_deal` — a converted deal stays
+      visible ONLY to lenders that already bid, which covers the feeds, the make_offer guard and chat in
+      one place) + migration 49 (the four feed RPCs gain a `prequal` OUT column so the lender UI can tell a
+      prequal apart). Two guards fall out of it: **no property address ⇒ the deal can only be submitted as
+      a prequal** (OQ#41 / client feedback #7 — closes that item) and **an offer cannot be accepted while
+      the deal is an unconverted prequal** (the invoice needs a closing date). Client: Deal Room "Move to
+      Live Deal" action + dialog (address/closing/COF) and a Prequal badge, the wizard makes the closing
+      date optional and the address required-unless-prequal, the New Deals card badges prequals and the
+      Make Offer dialog shows the **special prequal fine print**. i18n EN/FR. Covered by `smoke-prequal`
+      (27 checks); suite 22/22 green. ⚠️ The fine-print COPY is ours, not the client's — confirm the exact
+      wording with them (`makeOffer.prequalFinePrint`).
 - [ ] Scrolling lender logos on the login page + admin way to add more
 
 ## Removed from scope (per client — do not build)
@@ -151,3 +164,7 @@ because it's the highest-risk/most technical content (documents, AI matching, au
 
 - None for Phase 2 (rebrand + domain both closed 2026-07-17). Optional: a LenderMatch™ **image** logo
   asset if the client wants a graphical wordmark instead of the current text one.
+- **Phase 3 — prequal fine print**: the change request says lenders bid "with special fine print" but
+  never quotes it. `makeOffer.prequalFinePrint` (EN/FR) is our wording — get the client's exact copy.
+- **Phase 3 — do prequals expire?** `expire_old_deals` still expires a submitted prequal after 15 days
+  like any other deal. Left at parity deliberately; confirm whether prequals should sit longer.

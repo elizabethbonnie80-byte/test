@@ -136,7 +136,7 @@ export async function getBrokerDealFull(supabase: DB, dealId: string): Promise<L
   const { data, error } = await supabase
     .from("deals")
     .select(
-      "id, deal_number, created_at, city, province, location_type, dwelling_type, property_value, square_footage, acres, general_notes, closing_date, closing_date_flexible, cof_date, mortgage_product, mortgage_position, loan_amount, ltv, amortization_years, insured, previously_declined, previously_declined_reason, primary_credit_score, co_borrower_credit_score, gds, tds, foreign_income_country, owns_other_properties, door_count, credit_notes, income_notes, down_payment_notes, deal_income_types(income_type), deal_residency_statuses(residency), deal_credit_issues(credit_issue), deal_down_payment_sources(down_payment_source)",
+      "id, deal_number, created_at, city, province, location_type, dwelling_type, property_value, square_footage, acres, general_notes, closing_date, closing_date_flexible, cof_date, mortgage_product, mortgage_position, loan_amount, ltv, amortization_years, insured, previously_declined, previously_declined_reason, primary_credit_score, co_borrower_credit_score, gds, tds, foreign_income_country, owns_other_properties, door_count, credit_notes, income_notes, prequal, down_payment_notes, deal_income_types(income_type), deal_residency_statuses(residency), deal_credit_issues(credit_issue), deal_down_payment_sources(down_payment_source)",
     )
     .eq("id", dealId)
     .maybeSingle()
@@ -180,6 +180,7 @@ export async function getBrokerDealFull(supabase: DB, dealId: string): Promise<L
     creditNotes: data.credit_notes,
     incomeNotes: data.income_notes,
     downPaymentNotes: data.down_payment_notes,
+    prequal: data.prequal ?? false,
   }
 }
 

@@ -15,12 +15,22 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import { FieldError, RequiredFieldsNote } from '@/components/field-error'
 import { Toaster, toast } from 'sonner'
-import { Search, ChevronLeft, ChevronRight, Eye, FileText, Pencil, Trash2, ClipboardList, Plus } from 'lucide-react'
+import { Search, ChevronLeft, ChevronRight, Eye, FileText, Pencil, Trash2, ClipboardList, Plus, Home } from 'lucide-react'
 import { useState, useMemo, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { listBrokerDeals, deleteDeal, type BrokerDealListItem } from '@/lib/queries/deals'
+import { listBrokerDeals, deleteDeal, convertPrequalToLive, type BrokerDealListItem } from '@/lib/queries/deals'
 import { dealStatusStyle } from '@/lib/status-styles'
 import { listPendingSurveys, type PendingSurvey } from '@/lib/queries/surveys'
 import { SurveyDialog } from '@/components/survey-dialog'
@@ -103,6 +113,46 @@ export default function DealRoomPage() {
       toast.error(err instanceof Error ? err.message : t('deleteErr'))
     } finally {
       setDeleting(false)
+    }
+  }
+
+  // Round 3 Phase 3 — "Move to Live Deal": a submitted prequal gets its address + closing date (+
+  // COF) here. Offers placed on the prequal carry over; the deal does not re-enter the marketplace.
+  const [convertTarget, setConvertTarget] = useState<Deal | null>(null)
+  const [convertForm, setConvertForm] = useState({ address: '', closingDate: '', cofDate: '' })
+  const [convertAttempted, setConvertAttempted] = useState(false)
+  const [converting, setConverting] = useState(false)
+
+  const openConvert = (deal: Deal) => {
+    setConvertTarget(deal)
+    setConvertForm({ address: '', closingDate: '', cofDate: '' })
+    setConvertAttempted(false)
+  }
+
+  const handleConvert = async () => {
+    if (!convertTarget || converting) return
+    if (!convertForm.address.trim() || !convertForm.closingDate) {
+      setConvertAttempted(true)
+      return
+    }
+    setConverting(true)
+    try {
+      await convertPrequalToLive(supabase, convertTarget.id, {
+        propertyAddress: convertForm.address.trim(),
+        closingDate: convertForm.closingDate,
+        cofDate: convertForm.cofDate || null,
+      })
+      setDeals((prev) =>
+        prev.map((d) =>
+          d.id === convertTarget.id ? { ...d, prequal: false, closingDate: convertForm.closingDate } : d,
+        ),
+      )
+      toast.success(t('convertDone', { deal: convertTarget.dealNumber }))
+      setConvertTarget(null)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t('convertErr'))
+    } finally {
+      setConverting(false)
     }
   }
 
@@ -323,6 +373,12 @@ export default function DealRoomPage() {
                           <span className={`px-3 py-1 rounded-full text-xs font-medium ${dealStatusStyle(deal.status)}`}>
                             {DEAL_STATUS_LABEL[deal.status]}
                           </span>
+                          {/* Round 3 Phase 3: a prequal still needs an address + closing date */}
+                          {deal.prequal && (
+                            <span className="ml-1.5 px-2 py-1 rounded-full text-xs font-medium bg-sky-100 text-sky-800">
+                              {t('prequalBadge')}
+                            </span>
+                          )}
                         </td>
                         <td className="px-6 py-4 text-sm text-foreground">{deal.createdDate}</td>
                         <td className="px-6 py-4 text-sm text-foreground">{deal.closingDate}</td>
@@ -351,6 +407,13 @@ export default function DealRoomPage() {
                                   label: t('editDeal'),
                                   icon: <Pencil className="h-4 w-4" />,
                                   href: `/create-deal?edit=${deal.id}`,
+                                },
+                                // Round 3 Phase 3: a submitted prequal becomes a live deal here
+                                // (address + closing date + COF); its offers carry over.
+                                deal.prequal && ['submitted', 'offer_received'].includes(deal.status) && {
+                                  label: t('moveToLiveDeal'),
+                                  icon: <Home className="h-4 w-4" />,
+                                  onSelect: () => openConvert(deal),
                                 },
                                 deal.offersCount > 0 && {
                                   label: t('seeOffers'),
@@ -471,6 +534,73 @@ export default function DealRoomPage() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Round 3 Phase 3 — Move to Live Deal: the details a prequal was missing. Offers placed on
+            the prequal stay exactly as they are and remain acceptable once the deal is live. */}
+        <Dialog open={!!convertTarget} onOpenChange={(o) => { if (!o && !converting) setConvertTarget(null) }}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Home className="h-4 w-4 text-primary" />
+                {t('convertTitle', { deal: convertTarget?.dealNumber ?? '' })}
+              </DialogTitle>
+              <DialogDescription>{t('convertDesc')}</DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-1">
+              <div className="space-y-1.5">
+                <Label htmlFor="convert-address" className="text-xs">
+                  {t('convertAddress')}<span className="text-destructive ml-0.5">*</span>
+                </Label>
+                <Input
+                  id="convert-address"
+                  value={convertForm.address}
+                  placeholder={t('convertAddressPlaceholder')}
+                  aria-invalid={convertAttempted && !convertForm.address.trim()}
+                  className={convertAttempted && !convertForm.address.trim() ? 'border-destructive' : ''}
+                  onChange={(e) => setConvertForm((f) => ({ ...f, address: e.target.value }))}
+                  autoFocus
+                />
+                <FieldError show={convertAttempted && !convertForm.address.trim()} />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="convert-closing" className="text-xs">
+                    {t('convertClosing')}<span className="text-destructive ml-0.5">*</span>
+                  </Label>
+                  <Input
+                    id="convert-closing" type="date" value={convertForm.closingDate}
+                    aria-invalid={convertAttempted && !convertForm.closingDate}
+                    className={convertAttempted && !convertForm.closingDate ? 'border-destructive' : ''}
+                    onChange={(e) => setConvertForm((f) => ({ ...f, closingDate: e.target.value }))}
+                  />
+                  <FieldError show={convertAttempted && !convertForm.closingDate} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="convert-cof" className="text-xs">{t('convertCof')}</Label>
+                  <Input
+                    id="convert-cof" type="date" value={convertForm.cofDate}
+                    onChange={(e) => setConvertForm((f) => ({ ...f, cofDate: e.target.value }))}
+                  />
+                  <p className="text-xs text-muted-foreground">{t('convertCofHint')}</p>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground border-t border-border pt-3">{t('convertNote')}</p>
+            </div>
+
+            <DialogFooter className="items-center sm:justify-between">
+              <RequiredFieldsNote />
+              <div className="flex items-center gap-2">
+                <Button variant="outline" onClick={() => setConvertTarget(null)} disabled={converting}>
+                  {t('cancel')}
+                </Button>
+                <Button onClick={handleConvert} disabled={converting}>
+                  {converting ? t('converting') : t('convertConfirm')}
+                </Button>
+              </div>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </main>
       <Toaster richColors position="top-right" />
     </div>

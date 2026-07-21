@@ -609,6 +609,7 @@ export type Database = {
           occupancy: Database["public"]["Enums"]["occupancy_type"] | null
           owns_other_properties: boolean
           prequal: boolean
+          prequal_converted_at: string | null
           previously_declined: boolean
           previously_declined_reason: string | null
           primary_credit_score: number | null
@@ -689,6 +690,7 @@ export type Database = {
           occupancy?: Database["public"]["Enums"]["occupancy_type"] | null
           owns_other_properties?: boolean
           prequal?: boolean
+          prequal_converted_at?: string | null
           previously_declined?: boolean
           previously_declined_reason?: string | null
           primary_credit_score?: number | null
@@ -769,6 +771,7 @@ export type Database = {
           occupancy?: Database["public"]["Enums"]["occupancy_type"] | null
           owns_other_properties?: boolean
           prequal?: boolean
+          prequal_converted_at?: string | null
           previously_declined?: boolean
           previously_declined_reason?: string | null
           primary_credit_score?: number | null
@@ -1799,6 +1802,101 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      convert_prequal_to_live: {
+        Args: {
+          p_closing_date: string
+          p_cof_date?: string
+          p_deal_id: string
+          p_property_address: string
+        }
+        Returns: {
+          accepted_offer_id: string | null
+          acres: number | null
+          amortization_years: number | null
+          archived: boolean
+          assets_liquid_value: number | null
+          assets_total_value: number | null
+          bridge_loan_needed: boolean
+          broker_id: string
+          brokerage_id: string
+          cashback: boolean
+          city: string | null
+          closing_date: string | null
+          closing_date_flexible: boolean
+          co_borrower_credit_score: number | null
+          cof_date: string | null
+          collateral_transfer: boolean
+          cosignor_not_occupying: boolean
+          cosignor_occupying: boolean
+          created_at: string
+          credit_notes: string | null
+          deal_number: string | null
+          door_count: number | null
+          door_titles_count: number | null
+          down_payment_notes: string | null
+          dwelling_type: Database["public"]["Enums"]["dwelling_type"] | null
+          expired_at: string | null
+          first_and_heloc: boolean
+          fixed_second: boolean
+          foreign_income_country: string | null
+          fthb: boolean
+          gds: number | null
+          general_notes: string | null
+          guarantor: boolean
+          heloc: boolean
+          hobby_farm: boolean
+          id: string
+          income_notes: string | null
+          insured: boolean
+          lender_confirmed: boolean
+          loan_amount: number | null
+          location_type: Database["public"]["Enums"]["location_type"] | null
+          ltv: number | null
+          married_or_common_law: boolean
+          medical_professional: boolean
+          mortgage_position:
+            | Database["public"]["Enums"]["mortgage_position"]
+            | null
+          mortgage_product:
+            | Database["public"]["Enums"]["mortgage_product"]
+            | null
+          networth_program: boolean
+          new_build: boolean
+          new_to_canada: boolean
+          no_lender_exceptions_required: boolean
+          occupancy: Database["public"]["Enums"]["occupancy_type"] | null
+          owns_other_properties: boolean
+          prequal: boolean
+          prequal_converted_at: string | null
+          previously_declined: boolean
+          previously_declined_reason: string | null
+          primary_credit_score: number | null
+          property_value: number | null
+          province: Database["public"]["Enums"]["province"] | null
+          purchase_plus_improvements: boolean
+          purpose: Database["public"]["Enums"]["transaction_purpose"] | null
+          recreational_property: boolean
+          reverse_mortgage: boolean
+          septic: boolean
+          spouse_not_on_application: boolean
+          square_footage: number | null
+          status: Database["public"]["Enums"]["deal_status"]
+          submitted_at: string | null
+          tds: number | null
+          transaction_type:
+            | Database["public"]["Enums"]["transaction_type"]
+            | null
+          transunion_being_used: boolean
+          updated_at: string
+          well_water: boolean
+        }
+        SetofOptions: {
+          from: "*"
+          to: "deals"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       current_role_of: {
         Args: { uid: string }
         Returns: Database["public"]["Enums"]["user_role"]
@@ -2038,6 +2136,7 @@ export type Database = {
           mortgage_position: Database["public"]["Enums"]["mortgage_position"]
           mortgage_product: Database["public"]["Enums"]["mortgage_product"]
           owns_other_properties: boolean
+          prequal: boolean
           previously_declined: boolean
           previously_declined_reason: string
           primary_credit_score: number
@@ -2084,6 +2183,7 @@ export type Database = {
           mortgage_position: Database["public"]["Enums"]["mortgage_position"]
           mortgage_product: Database["public"]["Enums"]["mortgage_product"]
           owns_other_properties: boolean
+          prequal: boolean
           previously_declined: boolean
           previously_declined_reason: string
           primary_credit_score: number
@@ -2193,6 +2293,7 @@ export type Database = {
           mortgage_position: Database["public"]["Enums"]["mortgage_position"]
           mortgage_product: Database["public"]["Enums"]["mortgage_product"]
           owns_other_properties: boolean
+          prequal: boolean
           previously_declined: boolean
           previously_declined_reason: string
           primary_credit_score: number
@@ -2236,6 +2337,7 @@ export type Database = {
           mortgage_position: Database["public"]["Enums"]["mortgage_position"]
           mortgage_product: Database["public"]["Enums"]["mortgage_product"]
           owns_other_properties: boolean
+          prequal: boolean
           previously_declined: boolean
           previously_declined_reason: string
           primary_credit_score: number
@@ -2376,6 +2478,7 @@ export type Database = {
           occupancy: Database["public"]["Enums"]["occupancy_type"] | null
           owns_other_properties: boolean
           prequal: boolean
+          prequal_converted_at: string | null
           previously_declined: boolean
           previously_declined_reason: string | null
           primary_credit_score: number | null
@@ -2566,6 +2669,7 @@ export type Database = {
         | "lender_approved"
         | "lender_rejected"
         | "auto_offer_sent"
+        | "prequal_converted"
       occupancy_type:
         | "owner_occupied"
         | "rental_1_unit"
@@ -2841,6 +2945,7 @@ export const Constants = {
         "lender_approved",
         "lender_rejected",
         "auto_offer_sent",
+        "prequal_converted",
       ],
       occupancy_type: [
         "owner_occupied",

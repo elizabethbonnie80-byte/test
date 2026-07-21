@@ -37,6 +37,8 @@ export type FeedDeal = {
   province: Enums['province'] | null
   dwellingType: Enums['dwelling_type'] | null
   mortgageProduct: Enums['mortgage_product'] | null
+  // Round 3 Phase 3: a prequal carries special offer fine print (no address/closing date yet).
+  prequal?: boolean
 }
 
 type Translate = (key: string, vars?: Record<string, string | number>) => string
@@ -303,6 +305,10 @@ export function useLenderDealFeed<T extends FeedDeal>(config: {
       ? deals.find((d) => d.id === offerTarget[0])?.mortgageProduct ?? null
       : null
 
+  // Round 3 Phase 3: show the special prequal fine print when any targeted deal is a prequal.
+  const offerHasPrequal =
+    !!offerTarget?.some((id) => deals.find((d) => d.id === id)?.prequal)
+
   return {
     // data
     deals, loading, loadError, visibleDeals, paginated,
@@ -317,7 +323,7 @@ export function useLenderDealFeed<T extends FeedDeal>(config: {
     // pagination
     currentPage, setCurrentPage, totalPages, startIndex,
     // dialogs + actions
-    offerTarget, setOfferTarget, handleMakeOffer, onOfferSent, offerPrefillProduct,
+    offerTarget, setOfferTarget, handleMakeOffer, onOfferSent, offerPrefillProduct, offerHasPrequal,
     declineTarget, setDeclineTarget, confirmDecline,
     messageTarget, setMessageTarget, messageText, setMessageText,
     messageSending, messageShowError, setMessageShowError, sendMessage,

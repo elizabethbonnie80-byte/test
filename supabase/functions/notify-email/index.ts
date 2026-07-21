@@ -46,6 +46,7 @@ const SUBJECTS: Record<string, string> = {
   lender_approved: "Your lender account was approved",
   lender_rejected: "Update on your lender application",
   auto_offer_sent: "Auto-offers sent on your behalf",
+  prequal_converted: "A prequal you bid on is now a live deal",
 }
 
 // Round 3: the daily auto-offer digest is the one notification that needs a deep link — the offers it

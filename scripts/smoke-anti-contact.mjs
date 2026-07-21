@@ -77,6 +77,11 @@ async function main() {
     loan_amount: 500000, mortgage_product: "3_year_fixed", province: "alberta", closing_date: "2026-09-01",
   }).select("id").single()
   if (deal?.id) createdDealIds.push(deal.id)
+  // Round 3 Phase 3: submit_deal also refuses a deal with no property address unless it is a prequal.
+  await broker.from("deal_identities").insert({
+    deal_id: deal.id, borrower_first_name: "Anti", borrower_last_name: "Contact",
+    property_address: "500 4 Ave SW, Calgary, AB T2P 2V6",
+  })
   // Round 3 Phase 3: submit_deal requires both a consent form + photo ID uploaded first.
   await broker.from("deal_documents").insert([
     { deal_id: deal.id, kind: "consent", storage_path: `${deal.id}/consent.pdf`, file_name: "consent.pdf" },

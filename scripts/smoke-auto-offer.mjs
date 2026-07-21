@@ -32,6 +32,11 @@ async function main() {
   const created = []      // deal ids
   let filterId = null
   let autoOfferId = null
+  // Only ONE auto-offer per lender ever fires on a deal, so any OTHER active auto-offer this lender
+  // owns (e.g. the seed-phase3-qa fixture) would win by created_at and mask this run. Park them for
+  // the duration and restore them in the finally block.
+  const { data: parked } = await svc.from("auto_offers")
+    .update({ is_active: false }).eq("lender_id", lenderId).eq("is_active", true).select("id")
 
   /** A draft that satisfies the auto-offer gate by default (no notes, exceptions box checked). */
   async function makeDraft(overrides = {}) {
@@ -166,6 +171,7 @@ async function main() {
     }
     if (autoOfferId) await svc.from("auto_offers").delete().eq("id", autoOfferId)
     if (filterId) await svc.from("saved_filters").delete().eq("id", filterId)
+    for (const p of parked ?? []) await svc.from("auto_offers").update({ is_active: true }).eq("id", p.id)
     await svc.from("notifications").delete().eq("recipient_id", lenderId).eq("type", "auto_offer_sent")
   }
 

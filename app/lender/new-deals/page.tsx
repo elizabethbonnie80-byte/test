@@ -74,7 +74,7 @@ export default function NewDealsPage() {
     selectedIds, setSelectedIds, toggleSelect, toggleSelectAll,
     pendingDeals, allSelected, someSelected, bulkSelected, lenderStatus,
     currentPage, setCurrentPage, totalPages, startIndex,
-    offerTarget, setOfferTarget, handleMakeOffer, onOfferSent, offerPrefillProduct,
+    offerTarget, setOfferTarget, handleMakeOffer, onOfferSent, offerPrefillProduct, offerHasPrequal,
     declineTarget, setDeclineTarget, confirmDecline,
     messageTarget, setMessageTarget, messageText, setMessageText,
     messageSending, messageShowError, setMessageShowError, sendMessage,
@@ -283,6 +283,12 @@ export default function NewDealsPage() {
                           COF
                         </span>
                       )}
+                      {/* Round 3 Phase 3: a prequal has no address/closing date yet */}
+                      {deal.prequal && (
+                        <span className="text-[10px] font-bold bg-sky-100 text-sky-800 px-1.5 py-0.5 rounded">
+                          {t('prequal')}
+                        </span>
+                      )}
                       <span className="font-bold text-foreground">{deal.dealNumber}</span>
                     </div>
 
@@ -439,7 +445,7 @@ export default function NewDealsPage() {
       </AlertDialog>
 
       {/* Make Offer dialog (shared component: form + anti-contact + make_offer) */}
-      <MakeOfferDialog dealIds={offerTarget} prefillProduct={offerPrefillProduct} onClose={() => setOfferTarget(null)} onSuccess={onOfferSent} />
+      <MakeOfferDialog dealIds={offerTarget} prefillProduct={offerPrefillProduct} prequal={offerHasPrequal} onClose={() => setOfferTarget(null)} onSuccess={onOfferSent} />
 
       {/* Filters sidepanel — full-criteria (province → the 20 "Others" checkboxes), matching the
           client's reference Bubble panel. */}

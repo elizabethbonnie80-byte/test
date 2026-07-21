@@ -398,7 +398,8 @@ export default function CreateDealPage() {
       case "client":
         return !!clientFirstName.trim() && !!clientLastName.trim() && !!occupancyType && !!transactionPurpose && !!transactionType
       case "deal":
-        return !!closingDate && !!mortgageProduct && !!mortgagePosition && !!loanAmount.trim() && !!ltv.trim()
+        // Round 3 Phase 3: a prequal has no closing date yet — it gets one at "Move to Live Deal".
+        return (!!closingDate || preQualification) && !!mortgageProduct && !!mortgagePosition && !!loanAmount.trim() && !!ltv.trim()
           && !!amortization.trim() && (!previouslyDeclined || !!previouslyDeclinedReason.trim())
       case "qualifying": {
         const needsForeignCountry = downPaymentSources.includes("foreign_funds") || incomeTypes.includes("foreign_income")
@@ -408,7 +409,10 @@ export default function CreateDealPage() {
           && (!needsForeignCountry || !!foreignIncomeCountry.trim())
       }
       case "property":
-        return !!city.trim() && !!province && !!location && !!propertyValue.trim() && !!squareFootage.trim() && !!dwellingType
+        // Round 3 Phase 3 (OQ#41 / client feedback #7): no property address ⇒ the deal must be a
+        // prequal. submit_deal enforces the same rule at the data layer.
+        return (!!propertyAddress.trim() || preQualification)
+          && !!city.trim() && !!province && !!location && !!propertyValue.trim() && !!squareFootage.trim() && !!dwellingType
           && hasDoc("consent") && hasDoc("photo_id")
     }
   }
@@ -1329,7 +1333,11 @@ export default function CreateDealPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="propertyAddress">{t("propertyAddress")}</Label>
+                  <Label htmlFor="propertyAddress">
+                    {t("propertyAddress")}
+                    {/* Round 3 Phase 3: required unless the deal is submitted as a prequal */}
+                    {!preQualification && <Req />}
+                  </Label>
                   <div className="relative">
                     <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -1337,9 +1345,12 @@ export default function CreateDealPage() {
                       placeholder={t("propertyAddressPlaceholder")}
                       value={propertyAddress}
                       onChange={(e) => setPropertyAddress(e.target.value)}
-                      className="pl-10 bg-muted/50"
+                      className={`pl-10 bg-muted/50 ${errCls(!preQualification && invalid("property", propertyAddress))}`}
                     />
                   </div>
+                  {!preQualification && invalid("property", propertyAddress)
+                    ? <p className="text-xs text-destructive">{t("addressOrPrequal")}</p>
+                    : <p className="text-xs text-muted-foreground">{t("addressPrequalHint")}</p>}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

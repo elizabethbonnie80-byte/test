@@ -321,9 +321,18 @@ lender, never a 2nd offer from the same lender on one deal, and the OQ#25 penalt
 `offers.is_auto`/`auto_offer_id` mark the provenance, the `auto_offer_sent` notification type + daily
 `auto_offer_digest` cron deliver the confirmation email through the existing notifications→Resend channel.
 ⚠️ An auto-offer carries NO comments on purpose — comments hit the anti-contact trigger and the insert runs
-inside the BROKER's submit transaction). **Hosted status: migrations 36–44 are
+inside the BROKER's submit transaction) · `48_round3_phase3_prequal_live` (**Prequal → Live Deal**:
+`deals.prequal_converted_at` + `convert_prequal_to_live(deal, address, closing, cof)` [owner-gated,
+one-shot; offers carry over untouched and the bidding lenders get a `prequal_converted` notification that
+never names the address]; **no marketplace re-entry** is folded into `lender_can_see_deal` — a converted
+deal stays visible only to lenders that already bid, which covers the feeds + the make_offer guard + chat
+at once; `submit_deal` now refuses a deal with **no property address unless it is a prequal** [OQ#41 /
+client feedback #7] and `accept_offer` refuses an **unconverted prequal** [the invoice needs a closing
+date]) · `49_round3_phase3_feeds_prequal` (the four lender feed RPCs gain a trailing `prequal` OUT column
+so the New Deals card can badge it and the offer dialog can show the prequal fine print).
+**Hosted status: migrations 36–44 are
 applied to BOTH staging AND prod** (36–39 on 2026-07-14; 40–43 on 2026-07-17; **44 on 2026-07-21**);
-**45–47 are LOCAL ONLY so far** (Phase 3 in progress — not yet pushed to staging/prod).
+**45–49 are LOCAL ONLY so far** (Phase 3 in progress — not yet pushed to staging/prod).
 
 **Wired to Supabase (real data + verified):** sign-in (role redirect) · **password reset** (**OTP-code flow**:
 `/forgot-password` is 2-step — email → `resetPasswordForEmail`, then a **6-digit code** + new password →
@@ -460,7 +469,11 @@ lender/invoices); **auto-offer engine** (lender Settings → Auto-Offers section
 [`components/auto-offer-manager.tsx` + `lib/queries/auto-offers.ts`]: a standard offer bound to a saved
 filter, optional end date, active toggle, edit/delete, with the same bps-deduction/"Final Commission Amount"
 preview as Make Offer; `send_auto_offers` fires it inside `submit_deal`, Submitted Offers badges the result
-"Auto", and the daily digest notification/email links back there to edit).
+"Auto", and the daily digest notification/email links back there to edit); **Prequal → Live Deal** (a deal
+with no address submits only as a prequal; lenders see a PREQUAL badge on the New Deals card and the special
+fine print in the Make Offer dialog; the broker's Deal Room "Move to Live Deal" action collects
+address + closing + COF via `convertPrequalToLive` → offers carry over and the deal never re-enters another
+lender's feed).
 
 **Still mock / not built:** nothing currently tracked here — the last prototype (Contact-Us form submit)
 was wired in Round 3 Phase 1 (see below). (The **notification email channel** is now wired — see the
@@ -680,7 +693,10 @@ on several sets — any data migration must map **by display label** using the t
   (`smoke-delete-draft` — delete until accepted incl. offer cascade, edit-submitted until first offer,
   owner-only, cascade), the Round 3 Phase 3 **auto-offer engine** (`smoke-auto-offer` — the positive send
   plus EVERY negative gate: a filled note, the unchecked no-exceptions box, a filter miss, inactive/past
-  end date, blocked brokerage, one-offer-per-lender, the digest job, and auto-offer RLS),
+  end date, blocked brokerage, one-offer-per-lender, the digest job, and auto-offer RLS), the Phase 3
+  **prequal → live deal** flow (`smoke-prequal` — the address-or-prequal submit gate, bidding on a prequal,
+  the accept-before-conversion refusal, every conversion guard, offers carrying over + the lender
+  notification, and no marketplace re-entry),
   the Round 3 **filter criteria** (`smoke-open-filtered`), **decline** off the feeds
   (`smoke-decline`), **bilateral blocking**
   (`smoke-blocking` — security invariant #2), anti-contact, notifications, messaging, saved-filter feeds,

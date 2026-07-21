@@ -435,6 +435,8 @@ export type BrokerDealListItem = {
   /** Which broker submitted the deal — only meaningfully populated for a broker-admin's brokerage-wide view. */
   submittedByBrokerId: string
   submittedByName: string
+  /** Round 3 Phase 3: still a prequal (no address/closing date yet) → offer the "Move to Live Deal" action. */
+  prequal: boolean
 }
 
 /**
@@ -466,7 +468,7 @@ export async function listBrokerDeals(
   let query = supabase
     .from("deals")
     .select(
-      "id, deal_number, status, created_at, closing_date, loan_amount, broker_id, deal_identities(borrower_first_name, borrower_last_name), offers!offers_deal_id_fkey(count), profiles!deals_broker_id_fkey(first_name, last_name)",
+      "id, deal_number, status, created_at, closing_date, loan_amount, broker_id, prequal, deal_identities(borrower_first_name, borrower_last_name), offers!offers_deal_id_fkey(count), profiles!deals_broker_id_fkey(first_name, last_name)",
     )
     .order("created_at", { ascending: false })
   query = isBrokerAdmin && profile.brokerage_id
@@ -491,9 +493,30 @@ export async function listBrokerDeals(
       offersCount,
       submittedByBrokerId: d.broker_id,
       submittedByName: [broker?.first_name, broker?.last_name].filter(Boolean).join(" ") || "—",
+      prequal: d.prequal ?? false,
     }
   })
   return { deals, isBrokerAdmin }
+}
+
+/**
+ * Round 3 Phase 3 — "Move to Live Deal": adds the property address + closing date (+ COF) to a
+ * submitted prequal in one atomic RPC (migration 48). Existing offers carry over untouched and stay
+ * acceptable; the deal never re-enters the lender marketplace afterwards. Server-side it is
+ * owner-gated and refuses a deal that is not a prequal or was already converted.
+ */
+export async function convertPrequalToLive(
+  supabase: DB,
+  dealId: string,
+  input: { propertyAddress: string; closingDate: string; cofDate?: string | null },
+) {
+  const { error } = await supabase.rpc("convert_prequal_to_live", {
+    p_deal_id: dealId,
+    p_property_address: input.propertyAddress,
+    p_closing_date: input.closingDate,
+    p_cof_date: input.cofDate || undefined,
+  })
+  if (error) throw new Error(error.message)
 }
 
 // ── Lender: open-deals list ───────────────────────────────────────────────────
@@ -576,6 +599,8 @@ export type LenderDealListItem = {
   creditNotes: string | null
   incomeNotes: string | null
   downPaymentNotes: string | null
+  /** Round 3 Phase 3: a prequal (no property address / closing date yet) — bids carry special fine print. */
+  prequal: boolean
 }
 
 /**
@@ -628,6 +653,7 @@ function mapOpenDealRow(d: OpenDealRow): LenderDealListItem {
     creditNotes: d.credit_notes,
     incomeNotes: d.income_notes,
     downPaymentNotes: d.down_payment_notes,
+    prequal: d.prequal ?? false,
   }
 }
 

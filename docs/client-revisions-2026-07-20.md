@@ -12,12 +12,13 @@ then QA → merge to `staging` → deploy → promote to prod, per the usual flo
 ## Status (2026-07-21)
 
 **10 of 12 items are DONE and LIVE on both staging and prod** (`81b297b`; migration 44 applied to both).
-Only two remain, and neither is ours to finish right now:
+**#7 is now built too** — it landed with the Phase 3 prequal → live-deal flow (migration 48), so it is
+done on `dev` but **not yet deployed** (Phase 3 migrations 45–49 are local only). Only one item is still
+open:
 
 - **#5** — BLOCKED on the client. The question has been drafted and sent: which single label do the two
   "Passive" income types collapse into? It also needs a data migration to move existing
   `deal_income_types` rows off the retired value.
-- **#7** — belongs to the **Phase 3** prequal → live-deal flow (other dev).
 
 The client was told the rest of the batch ships alongside Phase 3, and that they can now re-test on
 staging with the same admin account as production.
@@ -52,8 +53,10 @@ staging with the same admin account as production.
   NOTE: these are the DWELLING dropdown options, distinct from the property FLAGS
   `hobby_farm`/`recreational_property` — the `recreational_property` flag is still labeled just
   "Recreational"; flag up to the client if they want that aligned too.
-- [blocked] **#7 — No property address ⇒ should require the prequal button (and doesn't).** The Prequal →
-  Live Deal flow is **Phase 3** (not built yet, owned by the other dev). Defer — note it against Phase 3.
+- [x] **#7 — No property address ⇒ should require the prequal button (and doesn't).** Done with the Phase 3
+  Prequal → Live Deal flow (migration 48): the Property step now marks the address required unless
+  **Prequal** is checked, and `submit_deal` enforces the same rule at the data layer ("Add a property
+  address, or mark the deal as a prequal."). The address is filled in later by "Move to Live Deal".
 
 ## B) Admin portal — new features
 
