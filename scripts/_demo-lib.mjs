@@ -98,6 +98,23 @@ export async function upsertSubmittedDeal(svc, { dealNumber, brokerId, brokerage
 }
 
 /**
+ * Round 3 Phase 3: submit_deal now requires both a consent form and a photo ID (deal_documents rows)
+ * before a deal can leave Draft. Attach both so a draft can be submitted. The actual bytes aren't
+ * needed for the gate (it only counts distinct kinds), so we insert tracking rows with placeholder
+ * storage paths using the deal-owner client (RLS: deal_docs_owner_write).
+ */
+export async function attachDealDocuments(ownerClient, dealId) {
+  const { error } = await ownerClient.from("deal_documents").upsert(
+    [
+      { deal_id: dealId, kind: "consent", storage_path: `${dealId}/consent.pdf`, file_name: "consent.pdf" },
+      { deal_id: dealId, kind: "photo_id", storage_path: `${dealId}/photo_id.pdf`, file_name: "photo_id.pdf" },
+    ],
+    { onConflict: "deal_id,kind" },
+  )
+  if (error) throw new Error(`attachDealDocuments ${dealId}: ${error.message}`)
+}
+
+/**
  * Lender makes an offer on `dealId`, then the broker accepts it one-step (which confirms + generates
  * the invoice). Returns the accepted offer id + the generated invoice row (read as the lender).
  */

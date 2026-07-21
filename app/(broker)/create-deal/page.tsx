@@ -22,6 +22,15 @@ import {
   type DealDraftInput,
 } from "@/lib/queries/deals"
 import { scanContact } from "@/lib/queries/anti-contact"
+import {
+  listDealDocuments,
+  uploadDealDocument,
+  deleteDealDocument,
+  signedDealDocumentUrl,
+  matchDocumentName,
+  type DealDocument,
+  type DocumentKind,
+} from "@/lib/queries/deal-documents"
 import { useT } from "@/components/i18n-provider"
 import { useEnums } from "@/lib/use-enums"
 import type { Database } from "@/lib/database.types"
@@ -37,6 +46,10 @@ import {
   ChevronRight,
   Save,
   Info,
+  Upload,
+  Paperclip,
+  X,
+  Loader2,
 } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
@@ -197,6 +210,12 @@ export default function CreateDealPage() {
   const [recreationalProperty, setRecreationalProperty] = useState(false)
   const [hobbyFarm, setHobbyFarm] = useState(false)
 
+  // Round 3 Phase 3: required documents (consent form + photo ID). A deal cannot be submitted until
+  // both are uploaded — the submit_deal RPC enforces it too (data-layer backstop).
+  const [documents, setDocuments] = useState<DealDocument[]>([])
+  const [uploadingKind, setUploadingKind] = useState<DocumentKind | null>(null)
+  const hasDoc = (kind: DocumentKind) => documents.some((d) => d.kind === kind)
+
   // Resume an existing draft (?draft=<id>) or edit a submitted deal (?edit=<id>): load it and
   // prefill the whole form. The loaded status decides the mode, not the param name.
   useEffect(() => {
@@ -207,6 +226,7 @@ export default function CreateDealPage() {
       .then(({ input, status }) => {
         setDraftId(id)
         setEditingSubmitted(status === "submitted")
+        listDealDocuments(supabase, id).then(setDocuments).catch(() => {})
         setClientFirstName(input.borrowerFirstName ?? "")
         setClientLastName(input.borrowerLastName ?? "")
         setOccupancyType(input.occupancy ?? "")
@@ -389,6 +409,7 @@ export default function CreateDealPage() {
       }
       case "property":
         return !!city.trim() && !!province && !!location && !!propertyValue.trim() && !!squareFootage.trim() && !!dwellingType
+          && hasDoc("consent") && hasDoc("photo_id")
     }
   }
 
@@ -459,6 +480,64 @@ export default function CreateDealPage() {
       if (reason) return t("notesBlocked", { label: t(labelKey), reason })
     }
     return null
+  }
+
+  /**
+   * Documents must attach to a persisted deal (they need a deal_id for the storage path + FK), so the
+   * first upload silently persists the current form as a draft if it isn't saved yet. Returns the id.
+   */
+  const ensureDraft = async (): Promise<string> => {
+    if (draftId) return draftId
+    const id = await createDealDraft(supabase, collectInput())
+    setDraftId(id)
+    return id
+  }
+
+  const handleUpload = async (kind: DocumentKind, file: File | undefined) => {
+    if (!file || uploadingKind) return
+    setUploadingKind(kind)
+    try {
+      const id = await ensureDraft()
+      const doc = await uploadDealDocument(supabase, id, kind, file)
+      setDocuments((prev) => [...prev.filter((d) => d.kind !== kind), doc])
+      toast.success(t("docUploaded"))
+      // Advisory AI name-match (never blocks submission). Reflect the result on the doc when it lands.
+      matchDocumentName(supabase, doc.id)
+        .then((r) => {
+          if (!r.checked) return
+          setDocuments((prev) =>
+            prev.map((d) =>
+              d.id === doc.id
+                ? { ...d, nameMatches: r.nameMatches ?? null, nameVariance: r.nameVariance ?? null, extractedName: r.extractedName ?? null }
+                : d,
+            ),
+          )
+        })
+        .catch(() => {})
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("docUploadError"))
+    } finally {
+      setUploadingKind(null)
+    }
+  }
+
+  const handleRemoveDoc = async (kind: DocumentKind) => {
+    if (!draftId) return
+    try {
+      await deleteDealDocument(supabase, draftId, kind)
+      setDocuments((prev) => prev.filter((d) => d.kind !== kind))
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("docUploadError"))
+    }
+  }
+
+  const handleViewDoc = async (storagePath: string) => {
+    try {
+      const url = await signedDealDocumentUrl(supabase, storagePath)
+      window.open(url, "_blank", "noopener,noreferrer")
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("docUploadError"))
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -1396,6 +1475,92 @@ export default function CreateDealPage() {
                       </div>
                     ))}
                   </div>
+                </div>
+
+                {/* Round 3 Phase 3: required documents — consent form + photo ID. A deal can't be
+                    submitted until both are uploaded. */}
+                <div className="space-y-3 pt-2">
+                  <Label className="text-sm font-medium">
+                    {t("docsTitle")}<Req />
+                  </Label>
+                  <p className="text-xs text-muted-foreground -mt-1">{t("docsHint")}</p>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {(
+                      [
+                        ["consent", "docConsent"],
+                        ["photo_id", "docPhotoId"],
+                      ] as [DocumentKind, string][]
+                    ).map(([kind, labelKey]) => {
+                      const doc = documents.find((d) => d.kind === kind)
+                      const busy = uploadingKind === kind
+                      const missing = attempted.property && !doc
+                      return (
+                        <div
+                          key={kind}
+                          className={`rounded-lg border p-3 ${missing ? "border-destructive" : "border-border"}`}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-sm font-medium">{t(labelKey)}</span>
+                            {doc && (
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveDoc(kind)}
+                                className="text-muted-foreground hover:text-destructive"
+                                aria-label={t("docRemove")}
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            )}
+                          </div>
+                          {doc ? (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => handleViewDoc(doc.storagePath)}
+                                className="mt-2 flex items-center gap-1.5 text-sm text-primary hover:underline"
+                              >
+                                <Paperclip className="h-3.5 w-3.5" />
+                                <span className="truncate max-w-[180px]">{doc.fileName ?? t("docView")}</span>
+                              </button>
+                              {doc.nameMatches === false && (
+                                <p className="mt-1 text-xs text-destructive">{t("docNameMismatch")}</p>
+                              )}
+                              {doc.nameMatches === true && doc.nameVariance === true && (
+                                <p className="mt-1 text-xs text-amber-600 dark:text-amber-500">
+                                  {t("docNameVariance", { name: doc.extractedName ?? "" })}
+                                </p>
+                              )}
+                              {doc.nameMatches === true && doc.nameVariance === false && (
+                                <p className="mt-1 text-xs text-muted-foreground">{t("docNameVerified")}</p>
+                              )}
+                            </>
+                          ) : (
+                            <label className="mt-2 flex cursor-pointer items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+                              {busy ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Upload className="h-4 w-4" />
+                              )}
+                              <span>{busy ? t("docUploading") : t("docChoose")}</span>
+                              <input
+                                type="file"
+                                accept="application/pdf,image/*"
+                                className="hidden"
+                                disabled={busy}
+                                onChange={(e) => {
+                                  handleUpload(kind, e.target.files?.[0])
+                                  e.target.value = ""
+                                }}
+                              />
+                            </label>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                  {attempted.property && (!hasDoc("consent") || !hasDoc("photo_id")) && (
+                    <p className="text-xs text-destructive">{t("docsRequired")}</p>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-2 pt-2">

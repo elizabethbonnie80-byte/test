@@ -26,6 +26,7 @@ export const NOTIFICATION_TYPE_KEY: Record<NotificationType, string> = {
   survey_pending: "typeSurveyPending",
   lender_approved: "typeLenderApproved",
   lender_rejected: "typeLenderRejected",
+  auto_offer_sent: "typeAutoOfferSent",
 }
 
 export type NotificationRole = "broker" | "lender" | "admin"
@@ -47,6 +48,8 @@ export function notificationHref(n: Pick<NotificationItem, "type" | "dealId">, r
       return "/lender/new-deals"
     case "offer_accepted":
     case "offer_switched":
+    // The daily auto-offer digest: the offers it lists stay editable in Submitted Offers.
+    case "auto_offer_sent":
       return "/lender/submitted-offers"
     case "lender_approved":
     case "lender_rejected":

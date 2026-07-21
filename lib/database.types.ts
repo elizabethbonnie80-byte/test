@@ -140,6 +140,81 @@ export type Database = {
           },
         ]
       }
+      auto_offers: {
+        Row: {
+          commission_bps: number
+          commitment_turn_time_days: number | null
+          created_at: string
+          doc_review_turn_time_days: number | null
+          end_date: string | null
+          id: string
+          is_active: boolean
+          last_sent_at: string | null
+          lender_fee_pct: number | null
+          lender_id: string
+          mortgage_product: Database["public"]["Enums"]["mortgage_product"]
+          name: string
+          rate: number
+          rate_lock_days: number
+          saved_filter_id: string
+          sent_count: number
+          updated_at: string
+        }
+        Insert: {
+          commission_bps: number
+          commitment_turn_time_days?: number | null
+          created_at?: string
+          doc_review_turn_time_days?: number | null
+          end_date?: string | null
+          id?: string
+          is_active?: boolean
+          last_sent_at?: string | null
+          lender_fee_pct?: number | null
+          lender_id: string
+          mortgage_product: Database["public"]["Enums"]["mortgage_product"]
+          name: string
+          rate: number
+          rate_lock_days: number
+          saved_filter_id: string
+          sent_count?: number
+          updated_at?: string
+        }
+        Update: {
+          commission_bps?: number
+          commitment_turn_time_days?: number | null
+          created_at?: string
+          doc_review_turn_time_days?: number | null
+          end_date?: string | null
+          id?: string
+          is_active?: boolean
+          last_sent_at?: string | null
+          lender_fee_pct?: number | null
+          lender_id?: string
+          mortgage_product?: Database["public"]["Enums"]["mortgage_product"]
+          name?: string
+          rate?: number
+          rate_lock_days?: number
+          saved_filter_id?: string
+          sent_count?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auto_offers_lender_id_fkey"
+            columns: ["lender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "auto_offers_saved_filter_id_fkey"
+            columns: ["saved_filter_id"]
+            isOneToOne: false
+            referencedRelation: "saved_filters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       broker_blocked_institutions: {
         Row: {
           broker_id: string
@@ -293,6 +368,66 @@ export type Database = {
           {
             foreignKeyName: "deal_declines_lender_id_fkey"
             columns: ["lender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deal_documents: {
+        Row: {
+          checked_at: string | null
+          created_at: string
+          deal_id: string
+          extracted_name: string | null
+          file_name: string | null
+          id: string
+          kind: string
+          name_matches: boolean | null
+          name_variance: boolean | null
+          storage_path: string
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          checked_at?: string | null
+          created_at?: string
+          deal_id: string
+          extracted_name?: string | null
+          file_name?: string | null
+          id?: string
+          kind: string
+          name_matches?: boolean | null
+          name_variance?: boolean | null
+          storage_path: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          checked_at?: string | null
+          created_at?: string
+          deal_id?: string
+          extracted_name?: string | null
+          file_name?: string | null
+          id?: string
+          kind?: string
+          name_matches?: boolean | null
+          name_variance?: boolean | null
+          storage_path?: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_documents_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_documents_uploaded_by_fkey"
+            columns: ["uploaded_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -738,6 +873,7 @@ export type Database = {
           closing_date: string
           created_at: string
           deal_id: string
+          document_name: string | null
           due_date: string
           id: string
           invoice_number: string
@@ -761,6 +897,7 @@ export type Database = {
           closing_date: string
           created_at?: string
           deal_id: string
+          document_name?: string | null
           due_date: string
           id?: string
           invoice_number: string
@@ -784,6 +921,7 @@ export type Database = {
           closing_date?: string
           created_at?: string
           deal_id?: string
+          document_name?: string | null
           due_date?: string
           id?: string
           invoice_number?: string
@@ -1011,6 +1149,7 @@ export type Database = {
       }
       offers: {
         Row: {
+          auto_offer_id: string | null
           comments: string | null
           commission_bps: number
           commitment_turn_time_days: number | null
@@ -1021,6 +1160,7 @@ export type Database = {
             | null
           doc_review_turn_time_days: number | null
           id: string
+          is_auto: boolean
           lender_fee_pct: number | null
           lender_id: string
           mortgage_product: Database["public"]["Enums"]["mortgage_product"]
@@ -1031,6 +1171,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          auto_offer_id?: string | null
           comments?: string | null
           commission_bps: number
           commitment_turn_time_days?: number | null
@@ -1041,6 +1182,7 @@ export type Database = {
             | null
           doc_review_turn_time_days?: number | null
           id?: string
+          is_auto?: boolean
           lender_fee_pct?: number | null
           lender_id: string
           mortgage_product: Database["public"]["Enums"]["mortgage_product"]
@@ -1051,6 +1193,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          auto_offer_id?: string | null
           comments?: string | null
           commission_bps?: number
           commitment_turn_time_days?: number | null
@@ -1061,6 +1204,7 @@ export type Database = {
             | null
           doc_review_turn_time_days?: number | null
           id?: string
+          is_auto?: boolean
           lender_fee_pct?: number | null
           lender_id?: string
           mortgage_product?: Database["public"]["Enums"]["mortgage_product"]
@@ -1071,6 +1215,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "offers_auto_offer_id_fkey"
+            columns: ["auto_offer_id"]
+            isOneToOne: false
+            referencedRelation: "auto_offers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "offers_deal_id_fkey"
             columns: ["deal_id"]
@@ -1560,6 +1711,7 @@ export type Database = {
       accept_offer: {
         Args: { p_offer_id: string }
         Returns: {
+          auto_offer_id: string | null
           comments: string | null
           commission_bps: number
           commitment_turn_time_days: number | null
@@ -1570,6 +1722,7 @@ export type Database = {
             | null
           doc_review_turn_time_days: number | null
           id: string
+          is_auto: boolean
           lender_fee_pct: number | null
           lender_id: string
           mortgage_product: Database["public"]["Enums"]["mortgage_product"]
@@ -1624,6 +1777,7 @@ export type Database = {
           closing_date: string
           created_at: string
           deal_id: string
+          document_name: string | null
           due_date: string
           id: string
           invoice_number: string
@@ -1649,6 +1803,10 @@ export type Database = {
         Args: { uid: string }
         Returns: Database["public"]["Enums"]["user_role"]
       }
+      deal_allows_auto_offer: {
+        Args: { d: Database["public"]["Tables"]["deals"]["Row"] }
+        Returns: boolean
+      }
       deal_has_offers: { Args: { p_deal_id: string }; Returns: boolean }
       decline_deal: { Args: { p_deal_id: string }; Returns: undefined }
       edit_offer: {
@@ -1664,6 +1822,7 @@ export type Database = {
           p_rate_lock_days: number
         }
         Returns: {
+          auto_offer_id: string | null
           comments: string | null
           commission_bps: number
           commitment_turn_time_days: number | null
@@ -1674,6 +1833,7 @@ export type Database = {
             | null
           doc_review_turn_time_days: number | null
           id: string
+          is_auto: boolean
           lender_fee_pct: number | null
           lender_id: string
           mortgage_product: Database["public"]["Enums"]["mortgage_product"]
@@ -1721,7 +1881,9 @@ export type Database = {
       is_admin: { Args: never; Returns: boolean }
       job_apply_rating_penalties: { Args: never; Returns: number }
       job_archive_expired_deals: { Args: never; Returns: number }
+      job_auto_offer_digest: { Args: never; Returns: undefined }
       job_expire_old_deals: { Args: never; Returns: number }
+      job_purge_expired_documents: { Args: never; Returns: undefined }
       job_reset_monthly_switches: { Args: never; Returns: number }
       job_trigger_closing_surveys: { Args: never; Returns: number }
       lender_can_see_deal: {
@@ -1741,6 +1903,7 @@ export type Database = {
           p_rate_lock_days: number
         }
         Returns: {
+          auto_offer_id: string | null
           comments: string | null
           commission_bps: number
           commitment_turn_time_days: number | null
@@ -1751,6 +1914,7 @@ export type Database = {
             | null
           doc_review_turn_time_days: number | null
           id: string
+          is_auto: boolean
           lender_fee_pct: number | null
           lender_id: string
           mortgage_product: Database["public"]["Enums"]["mortgage_product"]
@@ -1779,6 +1943,7 @@ export type Database = {
           closing_date: string
           created_at: string
           deal_id: string
+          document_name: string | null
           due_date: string
           id: string
           invoice_number: string
@@ -2115,6 +2280,7 @@ export type Database = {
         Args: { p_first?: string; p_last?: string; p_text: string }
         Returns: string
       }
+      send_auto_offers: { Args: { p_deal_id: string }; Returns: number }
       send_deal_message: {
         Args: { p_content: string; p_deal_id: string; p_lender_id?: string }
         Returns: {
@@ -2268,6 +2434,7 @@ export type Database = {
           closing_date: string
           created_at: string
           deal_id: string
+          document_name: string | null
           due_date: string
           id: string
           invoice_number: string
@@ -2398,6 +2565,7 @@ export type Database = {
         | "survey_pending"
         | "lender_approved"
         | "lender_rejected"
+        | "auto_offer_sent"
       occupancy_type:
         | "owner_occupied"
         | "rental_1_unit"
@@ -2672,6 +2840,7 @@ export const Constants = {
         "survey_pending",
         "lender_approved",
         "lender_rejected",
+        "auto_offer_sent",
       ],
       occupancy_type: [
         "owner_occupied",

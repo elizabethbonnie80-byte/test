@@ -55,6 +55,11 @@ async function main() {
   await broker.from("deal_identities").insert({
     deal_id: deal.id, borrower_first_name: "John", borrower_last_name: "Borrower", property_address: "123 Secret St",
   })
+  // Round 3 Phase 3: submit_deal requires both a consent form + photo ID uploaded first.
+  await broker.from("deal_documents").insert([
+    { deal_id: deal.id, kind: "consent", storage_path: `${deal.id}/consent.pdf`, file_name: "consent.pdf" },
+    { deal_id: deal.id, kind: "photo_id", storage_path: `${deal.id}/photo_id.pdf`, file_name: "photo_id.pdf" },
+  ])
   const { data: submitted } = await broker.rpc("submit_deal", { p_deal_id: deal.id })
   check("deal submitted", submitted?.status === "submitted", submitted?.deal_number)
 

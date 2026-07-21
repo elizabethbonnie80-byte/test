@@ -45,6 +45,7 @@ import {
   CalendarClock,
   FileText,
   Building2,
+  Zap,
 } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -507,7 +508,15 @@ export default function SubmittedOffersPage() {
                         >
                           {/* Deal # */}
                           <td className="px-6 py-4">
-                            <p className="font-medium text-foreground">{offer.dealNumber}</p>
+                            <p className="font-medium text-foreground flex items-center gap-1.5">
+                              {offer.dealNumber}
+                              {/* Round 3: sent by a standing auto-offer, not typed by hand */}
+                              {offer.isAuto && (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-violet-100 text-violet-800">
+                                  <Zap className="h-3 w-3" /> {t('autoBadge')}
+                                </span>
+                              )}
+                            </p>
                             <p className="text-xs text-muted-foreground">{offer.offerDate}</p>
                           </td>
 

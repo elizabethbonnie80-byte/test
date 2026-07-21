@@ -85,6 +85,12 @@ async function main() {
   const { data: draftSeen } = await lender.from("deals").select("id").eq("id", deal.id)
   check("lender cannot see a DRAFT deal", (draftSeen?.length ?? 0) === 0)
 
+  // Round 3 Phase 3: submit_deal requires both a consent form + photo ID uploaded first.
+  await broker.from("deal_documents").insert([
+    { deal_id: deal.id, kind: "consent", storage_path: `${deal.id}/consent.pdf`, file_name: "consent.pdf" },
+    { deal_id: deal.id, kind: "photo_id", storage_path: `${deal.id}/photo_id.pdf`, file_name: "photo_id.pdf" },
+  ])
+
   // 3. Broker submits -> deal number assigned, status submitted
   const { data: submitted, error: subErr } = await broker.rpc("submit_deal", { p_deal_id: deal.id })
   check("submit_deal RPC succeeds", !subErr, subErr?.message)

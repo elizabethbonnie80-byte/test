@@ -51,6 +51,7 @@ type Invoice = {
   amount: number
   broker_name: string
   client_name: string
+  document_name: string | null
   closing_date: string
   due_date: string
   status: string
@@ -106,6 +107,11 @@ async function renderInvoicePdf(inv: Invoice): Promise<Uint8Array> {
 
   // Parties + deal facts
   row("Borrower", inv.client_name || "—")
+  // Round 3 Phase 3: on a preferred-name variance, show the name as printed on the ID so the lender
+  // can reconcile the identity against the borrower name entered on the deal.
+  if (inv.document_name && inv.document_name !== inv.client_name) {
+    row("Name on document", inv.document_name)
+  }
   row("Broker", inv.broker_name || "—")
   const loc = [deal?.city, deal?.province].filter(Boolean).join(", ")
   row("Property", loc || "—")
@@ -152,7 +158,7 @@ Deno.serve(async (req) => {
     const { data: inv, error } = await asUser
       .from("invoices")
       .select(
-        "id, invoice_number, loan_amount, term_years, mortgage_product, platform_bps, amount, broker_name, client_name, closing_date, due_date, status, deals(deal_number, city, province)",
+        "id, invoice_number, loan_amount, term_years, mortgage_product, platform_bps, amount, broker_name, client_name, document_name, closing_date, due_date, status, deals(deal_number, city, province)",
       )
       .eq("id", invoiceId)
       .single()

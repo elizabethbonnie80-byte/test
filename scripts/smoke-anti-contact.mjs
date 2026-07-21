@@ -77,6 +77,11 @@ async function main() {
     loan_amount: 500000, mortgage_product: "3_year_fixed", province: "alberta", closing_date: "2026-09-01",
   }).select("id").single()
   if (deal?.id) createdDealIds.push(deal.id)
+  // Round 3 Phase 3: submit_deal requires both a consent form + photo ID uploaded first.
+  await broker.from("deal_documents").insert([
+    { deal_id: deal.id, kind: "consent", storage_path: `${deal.id}/consent.pdf`, file_name: "consent.pdf" },
+    { deal_id: deal.id, kind: "photo_id", storage_path: `${deal.id}/photo_id.pdf`, file_name: "photo_id.pdf" },
+  ])
   await broker.rpc("submit_deal", { p_deal_id: deal.id })
 
   const { data: badOffer, error: badErr } = await lender.rpc("make_offer", {

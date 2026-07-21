@@ -46,7 +46,7 @@ async function main() {
     loan_amount: 680000, ltv: 80, amortization_years: 25, insured: false,
     closing_date: dateDaysAgo(-32), cof_date: dateDaysAgo(-8), closing_date_flexible: true,
     primary_credit_score: 748, co_borrower_credit_score: 712,
-    gds: 31.5, tds: 38.2, down_payment_source: "seasoned_funds_3m", owns_other_properties: false,
+    gds: 31.5, tds: 38.2, owns_other_properties: false,
     general_notes: "Strong file — long-tenured salaried borrower, clean credit, 20% down from savings.",
     income_notes: "Primary applicant salaried; co-applicant salaried part-time.",
   }
@@ -57,6 +57,7 @@ async function main() {
     fields: richFields,
     client: { first: "Marcus", last: "Bennett", address: "48 Rosewood Avenue, Toronto, ON M4E 2K9" },
   })
+  await svc.from("deal_down_payment_sources").insert({ deal_id: dealA, down_payment_source: "seasoned_funds_3m" })
   await svc.from("deal_income_types").insert({ deal_id: dealA, income_type: "salary_no_ot" })
   await svc.from("deal_residency_statuses").insert({ deal_id: dealA, residency: "canadian_citizen" })
   await makeOffer(lender, dealA, { product: "5_year_fixed", rate: 5.09, lockDays: 120, bps: 40, commitment: 3, docReview: 2, comments: "Competitive on rate; can hold the lock for the full 120 days." })
@@ -72,10 +73,11 @@ async function main() {
       mortgage_product: "3_year_fixed", mortgage_position: "first",
       loan_amount: 540000, ltv: 75, amortization_years: 30, insured: false,
       closing_date: dateDaysAgo(-45), cof_date: null, closing_date_flexible: false,
-      primary_credit_score: 705, gds: 34.0, tds: 41.0, down_payment_source: "sale_of_existing_property",
+      primary_credit_score: 705, gds: 34.0, tds: 41.0,
     },
     client: { first: "Priya", last: "Sharma", address: "1203 - 5900 Wilson Avenue, Burnaby, BC V5H 4R9" },
   })
+  await svc.from("deal_down_payment_sources").insert({ deal_id: dealB, down_payment_source: "sale_of_existing_property" })
   await svc.from("deal_income_types").insert({ deal_id: dealB, income_type: "self_employed_full_doc" })
   await svc.from("deal_residency_statuses").insert({ deal_id: dealB, residency: "permanent_resident" })
   await makeOffer(lender, dealB, { product: "3_year_fixed", rate: 4.94, lockDays: 90, bps: 35, comments: "Happy to work this file — flexible on the doc-review turnaround." })

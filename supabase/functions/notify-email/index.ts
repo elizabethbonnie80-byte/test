@@ -45,6 +45,14 @@ const SUBJECTS: Record<string, string> = {
   survey_pending: "A closing survey is ready",
   lender_approved: "Your lender account was approved",
   lender_rejected: "Update on your lender application",
+  auto_offer_sent: "Auto-offers sent on your behalf",
+}
+
+// Round 3: the daily auto-offer digest is the one notification that needs a deep link — the offers it
+// lists stay editable until a broker accepts them. APP_URL is optional; without it the body stands alone.
+const APP_URL = Deno.env.get("APP_URL")?.replace(/\/$/, "")
+const EDIT_LINK: Record<string, string> = {
+  auto_offer_sent: "/lender/submitted-offers",
 }
 
 function json(status: number, payload: unknown) {
@@ -73,6 +81,9 @@ Deno.serve(async (req) => {
   const to = userRes?.user?.email
   if (!to) return json(200, { sent: false, reason: "no email on file" })
 
+  const path = EDIT_LINK[type]
+  const text = APP_URL && path ? `${body}\n\nEdit them here: ${APP_URL}${path}` : body
+
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
@@ -80,7 +91,7 @@ Deno.serve(async (req) => {
       from: NOTIFY_FROM,
       to,
       subject: SUBJECTS[type] ?? "Notification from LenderMatch",
-      text: body,
+      text,
     }),
   })
   if (!res.ok) {

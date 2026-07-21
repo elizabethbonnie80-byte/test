@@ -107,12 +107,37 @@ because it's the highest-risk/most technical content (documents, AI matching, au
 
 ## Phase 3 — Heavy features (24 h)
 
-- [ ] Document upload (consent PDF + photo ID) on the Property step; 120-day retention then auto-delete;
-      deal → Draft if either is missing
-- [ ] AI name-match: document name vs Primary Borrower First+Last; show both names on invoice on variance
-- [ ] Auto-offer engine: saved standard offers per product; auto-send only when deal matches ALL of a
+- [x] Document upload (consent PDF + photo ID) on the Property step; 120-day retention then auto-delete;
+      deal → Draft if either is missing — migration 45 (`deal_documents` table + RLS [owner/admin/brokerage-admin
+      read, never lenders] + private `deal-documents` bucket + object policies + `submit_deal` two-document
+      gate + `purge_expired_documents` cron). `purge-documents` edge fn does the physical delete (Storage SDK)
+      120 days after `closing_date`, cron-invoked via pg_net (Vault-config, fail-safe OFF until configured).
+      Client: `lib/queries/deal-documents.ts` + upload/view/remove widgets on the Create Deal Property step
+      (first upload auto-persists the draft); section incomplete + Submit gated until both present. i18n EN/FR.
+- [x] AI name-match: document name vs Primary Borrower First+Last; show both names on invoice on variance —
+      migration 46 (`deal_documents.extracted_name`/`name_matches`/`name_variance`/`checked_at` +
+      `invoices.document_name`; `accept_offer` stamps the variance name onto the invoice, photo-ID preferred).
+      `match-document-name` edge fn (Claude vision reads the name, nickname-tolerant same-person check, stamps
+      the row) — advisory, never blocks submit; fail-open without the AI key. Client calls it after upload +
+      shows a per-doc badge (verified / variance / mismatch); the invoice PDF renders a "Name on document" row
+      on variance, and the lender invoices page shows a "Name variance" badge. Verified e2e (Maria→Mary → both
+      names on invoice). ⚠️ Smokes updated: `submit_deal` now needs both docs — smoke-offers/slice/anti-contact
+      attach `deal_documents` first (+ shared `attachDealDocuments` helper). Suite 18/20 (invoice-pdf red =
+      local edge-runtime npm DNS; password-reset red = Kong stale-route flake — both pre-existing/env).
+- [x] Auto-offer engine: saved standard offers per product; auto-send only when deal matches ALL of a
       saved filter AND all 4 notes empty AND "no exceptions" checked; never on blocked brokerages; daily
-      confirmation email w/ edit link; optional end date; edit/delete; no daily cap
+      confirmation email w/ edit link; optional end date; edit/delete; no daily cap — migration 47
+      (`auto_offers` table + RLS [owner write, admin read] + `deal_allows_auto_offer` + `send_auto_offers`,
+      called from `submit_deal`; `offers.is_auto`/`auto_offer_id`; `auto_offer_sent` notification type +
+      the daily `auto_offer_digest` cron → the existing notifications→Resend channel, `notify-email` appends
+      the Submitted Offers edit link when `APP_URL` is set). Guardrails beyond the spec: never a second
+      offer from the same lender on one deal, never for an unapproved lender, and the OQ#25 penalty windows
+      still apply. NO comments field on an auto-offer — offer comments hit the anti-contact trigger and the
+      insert runs inside the BROKER's submit transaction, so stored text could block someone else's
+      submission; the lender adds comments afterwards via Edit Offer. Client: `lib/queries/auto-offers.ts`
+      + `components/auto-offer-manager.tsx` (lender Settings section, with the same bps-deduction preview
+      as Make Offer), an "Auto" badge on Submitted Offers, i18n EN/FR. Covered by `smoke-auto-offer` (22
+      checks incl. every negative gate); suite 20/21 (invoice-pdf red = local edge runtime not served).
 - [ ] Prequal → Live Deal flow: upload prequal, lenders bid w/ special fine print, "Move to Live Deal"
       button adds address/closing/COF, existing offers carry over, no marketplace re-entry
 - [ ] Scrolling lender logos on the login page + admin way to add more

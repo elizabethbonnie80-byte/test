@@ -448,7 +448,17 @@ export default function InvoicesPage() {
                             className={`border-b border-border last:border-0 transition-colors hover:bg-muted/30 ${overdue ? 'bg-red-50/50' : ''}`}
                           >
                             <td className="px-4 py-3 font-mono text-xs font-medium whitespace-nowrap">{inv.invoiceNumber}</td>
-                            <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{inv.dealRef}</td>
+                            <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
+                              {inv.dealRef}
+                              {inv.documentName && (
+                                <span
+                                  className="ml-1.5 inline-block rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-950 dark:text-amber-400"
+                                  title={t('nameVarianceTip', { name: inv.documentName })}
+                                >
+                                  {t('nameVarianceBadge')}
+                                </span>
+                              )}
+                            </td>
                             <td className="px-4 py-3 whitespace-nowrap">{inv.propertyCity}, {inv.propertyProvince}</td>
                             <td className="px-4 py-3 whitespace-nowrap">
                               <span className="text-foreground">{tf(inv.dealType)}</span>

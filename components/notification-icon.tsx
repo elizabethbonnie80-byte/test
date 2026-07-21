@@ -1,4 +1,4 @@
-import { DollarSign, CheckCircle2, RefreshCw, MessageSquare, Clock, XCircle, Filter, ClipboardCheck, ShieldCheck, ShieldAlert, Bell } from "lucide-react"
+import { DollarSign, CheckCircle2, RefreshCw, MessageSquare, Clock, XCircle, Filter, ClipboardCheck, ShieldCheck, ShieldAlert, Zap, Bell } from "lucide-react"
 import type { Database } from "@/lib/database.types"
 
 type NotificationType = Database["public"]["Enums"]["notification_type"]
@@ -14,6 +14,7 @@ const ICON: Record<NotificationType, typeof Bell> = {
   survey_pending: ClipboardCheck,
   lender_approved: ShieldCheck,
   lender_rejected: ShieldAlert,
+  auto_offer_sent: Zap,
 }
 
 // Matches the flat pill-color convention used across status badges (deal-overview, submitted-offers,
@@ -29,6 +30,7 @@ const TONE_CLASS: Record<NotificationType, string> = {
   survey_pending: "bg-yellow-100 text-yellow-800",
   lender_approved: "bg-green-100 text-green-800",
   lender_rejected: "bg-red-100 text-red-800",
+  auto_offer_sent: "bg-violet-100 text-violet-800",
 }
 
 /** Colored round icon chip for a notification type — shared by the bell popover and the full page. */

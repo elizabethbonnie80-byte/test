@@ -24,6 +24,7 @@ const SMOKES = [
   "smoke-slice.mjs",
   "smoke-delete-draft.mjs",
   "smoke-offers.mjs",
+  "smoke-auto-offer.mjs",
   "smoke-switch.mjs",
   "smoke-anti-contact.mjs",
   "smoke-notifications.mjs",

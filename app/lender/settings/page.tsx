@@ -27,6 +27,7 @@ import {
   type SavedFilterInput,
 } from '@/lib/queries/saved-filters'
 import { EnumField, NumberField } from '@/components/filter-fields'
+import { AutoOfferManager } from '@/components/auto-offer-manager'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -59,6 +60,7 @@ import {
   Clock,
   AlertCircle,
   SlidersHorizontal,
+  Zap,
 } from 'lucide-react'
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
@@ -363,10 +365,15 @@ export default function LenderSettingsPage() {
           )}
         </Section>
 
-        {/* ── 4. Account (wired): profile · email · password ── */}
+        {/* ── 4. Auto-Offers (Round 3 Phase 3 — standing offers sent on a full filter match) ── */}
+        <Section icon={<Zap className="h-4 w-4" />} title={t('secAutoOffers')}>
+          <AutoOfferManager />
+        </Section>
+
+        {/* ── 5. Account (wired): profile · email · password ── */}
         <AccountSettings />
 
-        {/* ── 5. Notifications ── */}
+        {/* ── 6. Notifications ── */}
         <Section icon={<Bell className="h-4 w-4" />} title={t('secNotifications')}>
           <NotificationPreferences role="lender" />
         </Section>

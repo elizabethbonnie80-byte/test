@@ -305,8 +305,25 @@ feedback 2026-07-20 #11**: approving a lender sent TWO "approved" emails. The DB
 construction — one `notify()` → one row → one AFTER INSERT trigger → one email — so the duplicate came from
 `approve_lender` being INVOKED twice. `approve_lender`/`reject_lender` are now **idempotent**: they only
 transition + notify on a real status change, so re-approving an already-approved lender is a no-op with no
-second email; a non-existent id still errors. Signatures unchanged). **Hosted status: migrations 36–44 are
-applied to BOTH staging AND prod** (36–39 on 2026-07-14; 40–43 on 2026-07-17; **44 on 2026-07-21**).
+second email; a non-existent id still errors. Signatures unchanged) · `45_round3_phase3_documents`
+(**Round 3 Phase 3**: `deal_documents` [consent PDF + photo ID per deal] + RLS [owner/admin/brokerage-admin
+read — **never lenders**] + the private `deal-documents` bucket & object policies; `submit_deal` gains a
+two-document gate; `purge_expired_documents` cron → `purge-documents` edge fn deletes the bytes 120 days
+after `closing_date`) · `46_round3_phase3_name_match` (`deal_documents.extracted_name`/`name_matches`/
+`name_variance`/`checked_at` + `invoices.document_name`; `accept_offer` stamps a variance name onto the
+invoice [photo ID preferred]; the `match-document-name` edge fn reads the name with Claude vision —
+advisory, fail-open, never blocks submit) · `47_round3_phase3_auto_offers` (**auto-offer engine**:
+`auto_offers` [a lender's saved standard offer riding on one of their saved filters] + RLS [owner write,
+admin read]; `send_auto_offers(deal)` is called from `submit_deal` and posts the offer only when
+`saved_filter_matches` is true AND `deal_allows_auto_offer` [all 4 notes empty +
+`no_lender_exceptions_required`] — never on a blocked brokerage [either direction], never for an unapproved
+lender, never a 2nd offer from the same lender on one deal, and the OQ#25 penalty windows still apply;
+`offers.is_auto`/`auto_offer_id` mark the provenance, the `auto_offer_sent` notification type + daily
+`auto_offer_digest` cron deliver the confirmation email through the existing notifications→Resend channel.
+⚠️ An auto-offer carries NO comments on purpose — comments hit the anti-contact trigger and the insert runs
+inside the BROKER's submit transaction). **Hosted status: migrations 36–44 are
+applied to BOTH staging AND prod** (36–39 on 2026-07-14; 40–43 on 2026-07-17; **44 on 2026-07-21**);
+**45–47 are LOCAL ONLY so far** (Phase 3 in progress — not yet pushed to staging/prod).
 
 **Wired to Supabase (real data + verified):** sign-in (role redirect) · **password reset** (**OTP-code flow**:
 `/forgot-password` is 2-step — email → `resetPasswordForEmail`, then a **6-digit code** + new password →
@@ -433,7 +450,17 @@ silently]; **Edit Offer** on Submitted Offers for pending offers [shared `MakeOf
 `edit_offer`, broker notified]; offer-entry **prefill + remember-last** [deal product + localStorage
 `ll_last_offer`, comments always cleared]; the Round 3 Create Deal fields replicated in the **Filters
 sidepanel** [credit-issue/down-payment exclusions, 4 new "Others" flags, liquid/total asset minimums, max
-door titles, "no exceptions only"] — a chip and the panel still share `saved_filter_matches`).
+door titles, "no exceptions only"] — a chip and the panel still share `saved_filter_matches`) · **Round 3
+Phase 3, items 1–3** (LOCAL ONLY so far — see `docs/round3-progress.md`): **deal documents** (consent PDF +
+photo ID uploaded on the Create Deal Property step via `lib/queries/deal-documents.ts` → private
+`deal-documents` bucket; Submit gated on both, 120-day retention purge); **AI name-match** (the
+`match-document-name` edge fn reads the document name with Claude vision and badges the doc
+verified/variance/mismatch; on variance both names print on the invoice PDF + a "Name variance" badge on
+lender/invoices); **auto-offer engine** (lender Settings → Auto-Offers section
+[`components/auto-offer-manager.tsx` + `lib/queries/auto-offers.ts`]: a standard offer bound to a saved
+filter, optional end date, active toggle, edit/delete, with the same bps-deduction/"Final Commission Amount"
+preview as Make Offer; `send_auto_offers` fires it inside `submit_deal`, Submitted Offers badges the result
+"Auto", and the daily digest notification/email links back there to edit).
 
 **Still mock / not built:** nothing currently tracked here — the last prototype (Contact-Us form submit)
 was wired in Round 3 Phase 1 (see below). (The **notification email channel** is now wired — see the
@@ -444,7 +471,8 @@ can't act on expired deals, so the archive view was dropped — deals still expi
 and the shared **site footer** across the whole app + the `SiteFooter` component (part of the contact-page
 mockup / cleaner app chrome — legal docs stay reachable from the sign-up ToS links).
 
-**Edge-function secrets (local):** custom secrets (`ANTHROPIC_API_KEY`, `RESEND_API_KEY`, `NOTIFY_FROM`)
+**Edge-function secrets (local):** custom secrets (`ANTHROPIC_API_KEY`, `RESEND_API_KEY`, `NOTIFY_FROM`,
+optional `APP_URL` — set it hosted so the daily auto-offer digest email can link to Submitted Offers)
 live in **`supabase/.env`** (gitignored — REAL keys, never commit) and are loaded by serving with an
 env-file: **`pnpm functions:serve`** (= `supabase functions serve --env-file supabase/.env`). The
 built-in `SUPABASE_URL` / `SUPABASE_ANON_KEY` / `SUPABASE_SERVICE_ROLE_KEY` are auto-injected — only the
@@ -615,6 +643,8 @@ on several sets — any data migration must map **by display label** using the t
 | `trigger_closing_surveys` | daily 08:00 | confirmed deals with closing_date ≤ today and no survey → survey + notification |
 | `reset_monthly_switches` | monthly 1st 00:01 | reset `offer_switches_this_month` |
 | `apply_rating_penalties` | weekly Mon 03:00 | recompute `penalty_active` per lender |
+| `purge_expired_documents` | daily 02:30 | deal documents 120+ days past `closing_date` → `purge-documents` edge fn deletes bytes + rows |
+| `auto_offer_digest` | daily 07:00 | one `auto_offer_sent` notification per lender summarising the last 24 h of auto-offers (→ confirmation email w/ edit link) |
 
 ## Conventions
 
@@ -648,7 +678,10 @@ on several sets — any data migration must map **by display label** using the t
   **invoice deletion + no-lender-notify** (`smoke-switch`), the **match-% engine**
   (`smoke-maturing` — weights/formula/badge + Bubble bugs #10/#11), the Round 3 **edit/delete rules**
   (`smoke-delete-draft` — delete until accepted incl. offer cascade, edit-submitted until first offer,
-  owner-only, cascade), the Round 3 **filter criteria** (`smoke-open-filtered`), **decline** off the feeds
+  owner-only, cascade), the Round 3 Phase 3 **auto-offer engine** (`smoke-auto-offer` — the positive send
+  plus EVERY negative gate: a filled note, the unchecked no-exceptions box, a filter miss, inactive/past
+  end date, blocked brokerage, one-offer-per-lender, the digest job, and auto-offer RLS),
+  the Round 3 **filter criteria** (`smoke-open-filtered`), **decline** off the feeds
   (`smoke-decline`), **bilateral blocking**
   (`smoke-blocking` — security invariant #2), anti-contact, notifications, messaging, saved-filter feeds,
   sign-up, admin, FAQs, surveys, the rating penalty (effect + **survey→job computation**), and password

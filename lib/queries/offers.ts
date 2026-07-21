@@ -280,6 +280,8 @@ export type SubmittedOfferItem = {
   docReviewDays: number | null
   lenderFeePct: number | null
   comments: string | null
+  /** Round 3: sent by the lender's standing auto-offer at deal submit, not typed by hand (migration 47). */
+  isAuto: boolean
 }
 
 // Round 3: the lender portal shows a switched-away offer as plain "Declined" (the broker's switch
@@ -325,7 +327,7 @@ export async function listSubmittedOffers(supabase: DB): Promise<SubmittedOfferI
   const { data, error } = await supabase
     .from("offers")
     .select(
-      "id, deal_id, status, rate, rate_lock_days, commission_bps, commitment_turn_time_days, doc_review_turn_time_days, lender_fee_pct, mortgage_product, comments, created_at, deals!offers_deal_id_fkey(deal_number, province, city, dwelling_type, loan_amount, ltv, property_value, purpose, insured, closing_date, amortization_years)",
+      "id, deal_id, status, rate, rate_lock_days, commission_bps, commitment_turn_time_days, doc_review_turn_time_days, lender_fee_pct, mortgage_product, comments, created_at, is_auto, deals!offers_deal_id_fkey(deal_number, province, city, dwelling_type, loan_amount, ltv, property_value, purpose, insured, closing_date, amortization_years)",
     )
     .eq("lender_id", user.id)
     .order("created_at", { ascending: false })
@@ -364,6 +366,7 @@ export async function listSubmittedOffers(supabase: DB): Promise<SubmittedOfferI
       docReviewDays: o.doc_review_turn_time_days,
       lenderFeePct: o.lender_fee_pct === null ? null : Number(o.lender_fee_pct),
       comments: o.comments,
+      isAuto: o.is_auto ?? false,
     }
   })
 }
@@ -420,6 +423,8 @@ export type LenderInvoiceItem = {
   status: "Pending" | "Paid" | "Cancelled"
   paidDate?: string
   cancelledDate?: string
+  /** Round 3 Phase 3: name as printed on the ID when it is a preferred-name variance (else null). */
+  documentName?: string | null
 }
 
 const INVOICE_STATUS_LABEL: Record<Enums["invoice_status"], LenderInvoiceItem["status"]> = {
@@ -433,7 +438,7 @@ export async function listLenderInvoices(supabase: DB): Promise<LenderInvoiceIte
   const { data, error } = await supabase
     .from("invoices")
     .select(
-      "id, invoice_number, loan_amount, term_years, mortgage_product, platform_bps, amount, closing_date, due_date, status, paid_at, cancelled_at, created_at, deals(deal_number, city, province, purpose)",
+      "id, invoice_number, loan_amount, term_years, mortgage_product, platform_bps, amount, closing_date, due_date, status, paid_at, cancelled_at, created_at, document_name, deals(deal_number, city, province, purpose)",
     )
     .order("created_at", { ascending: false })
   if (error) throw new Error(error.message)
@@ -457,6 +462,7 @@ export async function listLenderInvoices(supabase: DB): Promise<LenderInvoiceIte
       status: INVOICE_STATUS_LABEL[i.status],
       paidDate: i.paid_at ? i.paid_at.slice(0, 10) : undefined,
       cancelledDate: i.cancelled_at ? i.cancelled_at.slice(0, 10) : undefined,
+      documentName: i.document_name ?? null,
     }
   })
 }
