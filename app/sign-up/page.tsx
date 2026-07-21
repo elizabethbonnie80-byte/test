@@ -106,20 +106,25 @@ export default function SignUpPage() {
         organizationId,
         tosAccepted: agreedToTerms,
       })
-      if (role === "lender") {
-        // Lenders await manual admin approval — don't drop them into an empty (RLS-denied) feed.
-        if (hasSession) await supabase.auth.signOut()
+      if (!hasSession) {
+        // Deployment with email confirmations ON (hosted): no session yet — BOTH roles must confirm
+        // with the 6-digit code we emailed (verifyOtp) before continuing. handleVerify then routes a
+        // lender → pending-approval and a broker → deal-room. (Client feedback 2026-07-20 #12: lenders
+        // were skipping this and landing on the pending screen with an UNCONFIRMED email, so they could
+        // never sign in afterwards — there was nowhere to enter the code.)
+        setCodeSent(true)
+        setIsSubmitting(false)
+      } else if (role === "lender") {
+        // Confirmations OFF (local): the session is live immediately, but lenders still await manual
+        // admin approval — sign them out and show the pending screen (don't drop them into an
+        // RLS-denied feed).
+        await supabase.auth.signOut()
         setLenderPending(true)
-      } else if (hasSession) {
-        // Brokers are active immediately (email confirmations off locally → session is live).
+      } else {
+        // Broker, confirmations off: active immediately.
         toast.success(t("createdWelcome"))
         router.push("/deal-room")
         router.refresh()
-      } else {
-        // Deployment with email confirmations on: no session yet — show the code-entry screen so the
-        // user confirms with the 6-digit code we emailed (verifyOtp), then continues in-app.
-        setCodeSent(true)
-        setIsSubmitting(false)
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("errCreate"))

@@ -75,6 +75,16 @@ async function main() {
   check("approved lender has a lender_approved notification", !!approvedNotif, approvedNotif?.body)
   check("it is unread", approvedNotif?.is_read === false)
 
+  // Idempotency (#11, migration 44): re-approving an already-approved lender must NOT create a second
+  // notification (→ no duplicate email). Count lender_approved rows, re-approve, recount.
+  const countApproved = async () =>
+    (await svc.from("notifications").select("id", { count: "exact", head: true })
+       .eq("recipient_id", approveId).eq("type", "lender_approved")).count ?? -1
+  const beforeReapprove = await countApproved()
+  const { error: reErr } = await admin.rpc("approve_lender", { p_lender_id: approveId })
+  check("re-approving an already-approved lender is a no-op (no error)", !reErr, reErr?.message)
+  check("re-approve creates NO second lender_approved notification", (await countApproved()) === beforeReapprove, `count stayed ${beforeReapprove}`)
+
   // The rejected lender sees the reason in the body.
   const rejLender = await clientFor("notif.reject@loanlink.test")
   const { data: rejNotifs } = await rejLender.from("notifications").select("type, body")
