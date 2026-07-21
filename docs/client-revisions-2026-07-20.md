@@ -44,12 +44,20 @@ then QA → merge to `staging` → deploy → promote to prod, per the usual flo
 
 ## B) Admin portal — new features
 
-- [ ] **#8 — Manage broker-admin flags from the Admin portal.** The first broker of a brokerage is no longer
-  auto-made admin; the client wants to mark brokers as admins for their brokerage from the Admin section.
-  Needs: an admin UI (list brokers by brokerage + toggle `profiles.is_broker_admin`) + a `security definer`
-  admin RPC + RLS. **Feature, medium-large.**
-- [ ] **#9 — Add new brokerages + lender institutions from the Admin portal.** Needs admin UI + create RPCs
-  for `brokerages` / `lender_institutions` + RLS. **Feature, medium-large.**
+- [x] **#8 — Manage broker-admin flags from the Admin portal.** New page **`/admin/brokers`**: every broker
+  with their brokerage, search + brokerage filter, and a Make/Remove admin action. **No migration was
+  needed** — `profiles_self_read` is already `id = auth.uid() or is_admin()`, `profiles_admin_update` allows
+  the write, and the `protect_privileged_profile_fields` guard *exempts admins*, so `setBrokerAdmin()` is a
+  plain UPDATE on `profiles.is_broker_admin` (same shape as `setLenderPenalty`).
+  **Decision: the Bubble "first broker to sign up becomes admin" auto-grant (OQ#23) is NOT restored** — the
+  client asked to assign it explicitly here.
+- [x] **#9 — Add new brokerages + lender institutions from the Admin portal.** New page
+  **`/admin/organizations`** with Brokerages / Lenders tabs: add, rename, and deactivate/reactivate.
+  **No migration needed** — `lookup_write` / `inst_write` are already `for all … using (is_admin())`.
+  Both tables share an identical shape, so the query helpers are generic over an `OrgTable` union.
+  **Removal is a DEACTIVATE, never a delete** (profiles/deals hold FKs; `is_active = false` already hides the
+  row from the sign-up dropdowns via the migration-18 anon policies). The `name` UNIQUE violation (23505) is
+  surfaced as a friendly "that name is already in use".
 
 ## C) Auth / lender approval — bugs (priority: block the client from testing the lender portal)
 
@@ -76,7 +84,7 @@ then QA → merge to `staging` → deploy → promote to prod, per the usual flo
 
 1. ~~**Auth bugs (#10, #11, #12)**~~ — **DONE** (migration 44 + signup code-screen fix + staging admin enabled).
 2. ~~**Quick label wins (#1, #2, #3, #6)**~~ — **DONE.**
-3. **Behavior (#4)** ← next.
-4. **Income merge (#5)** — once the client confirms the canonical label.
-5. **Admin features (#8, #9)** — a mini-batch of their own.
+3. ~~**Behavior (#4)**~~ — **DONE.**
+4. ~~**Admin features (#8, #9)**~~ — **DONE** (both turned out to need no migration).
+5. **Income merge (#5)** ← blocked: waiting on the client's canonical label.
 6. **#7** — deferred to Phase 3 (other dev).

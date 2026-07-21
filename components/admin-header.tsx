@@ -36,6 +36,13 @@ const NAV: NavEntry[] = [
     ],
   },
   {
+    group: 'manage',
+    items: [
+      { key: 'brokers', href: '/admin/brokers' },
+      { key: 'organizations', href: '/admin/organizations' },
+    ],
+  },
+  {
     group: 'content',
     items: [
       { key: 'faqs', href: '/admin/faqs' },

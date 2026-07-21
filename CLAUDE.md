@@ -93,12 +93,15 @@ for exact status; don't re-derive scope from `open-questions.md` for these three
 After Phase 1+2 went live the client sent a 12-item revision list (source email:
 `docs/details_20_07.pdf`). It is tracked item-by-item in **[`docs/client-revisions-2026-07-20.md`](./docs/client-revisions-2026-07-20.md)**
 — read it before touching Create Deal labels, the lender approval/signup flow, or the admin portal.
-Shipped so far (live on staging + prod): the auth fixes (#11 idempotent approval, #12 both roles confirm
-email) and the label revisions (#1 Credit Issues hint removed, #2 "CCB (under 15 years old)", #3 "Borrowed
-Downpayment", #6 "Hobby Farm"/"Recreational Property"), plus #4 (assets always visible, mandatory only with
-Networth). Still open: **#8/#9** (admin portal — mark broker admins; add brokerages/lenders), **#5** (merge
-the two "Passive" income types — BLOCKED on the client's choice of canonical label, needs a data migration),
-and **#7** (prequal required when there's no address — belongs to the Phase 3 prequal flow, other dev).
+Shipped: the auth fixes (#11 idempotent approval, #12 both roles confirm email), the label revisions (#1
+Credit Issues hint removed, #2 "CCB (under 15 years old)", #3 "Borrowed Downpayment", #6 "Hobby
+Farm"/"Recreational Property"), #4 (assets always visible, mandatory only with Networth), and the two admin
+pages **#8 `/admin/brokers`** + **#9 `/admin/organizations`**. ⚠️ **#8/#9 needed NO migration** — the RLS was
+already permissive for admins (`profiles_self_read` = `id = auth.uid() or is_admin()`, `profiles_admin_update`,
+the privilege guard's is_admin() exemption, and `lookup_write`/`inst_write` = `for all … using (is_admin())`);
+don't add RPCs for them. Still open: **#5** (merge the two "Passive" income types — BLOCKED on the client's
+choice of canonical label, needs a data migration) and **#7** (prequal required when there's no address —
+belongs to the Phase 3 prequal flow, other dev).
 
 ## Stack
 
@@ -342,7 +345,12 @@ shared `lib/csv.ts`; **platform invoices** = every invoice via `listAllInvoices`
 `invoices_admin`] with KPIs + status filter + CSV at `/admin/invoices`; **legal editor** is now a **Tiptap
 WYSIWYG** storing sanitized HTML [DOMPurify at the write boundary, rendered via shared
 `components/legal-content.tsx`]; the admin tables use a shared **row-action dropdown**
-[`components/row-actions.tsx`] instead of stacked buttons; the admin nav is centered) · **admin acts as
+[`components/row-actions.tsx`] instead of stacked buttons; the admin nav is centered. **Manage group**
+(client feedback 2026-07-20): **`/admin/brokers`** = every broker + their brokerage, search/filter, and a
+Make/Remove *brokerage admin* action [`setBrokerAdmin` — a plain UPDATE on `profiles.is_broker_admin`; the
+Bubble first-broker auto-grant of OQ#23 is deliberately NOT restored]; **`/admin/organizations`** = add /
+rename / deactivate **brokerages + lender institutions** in one tabbed screen [generic `OrgTable` helpers;
+deactivate, never delete — FKs + the migration-18 anon `is_active` filter]) · **admin acts as
 broker** (migration 28: creates/manages deals under the hidden Platform Administration brokerage; the shared
 Deal Room / Create Deal / Deal Detail pages render `components/portal-header.tsx` to keep admins in admin
 chrome; all-deals oversight stays in Deal Overview) · **public legal pages** (`/legal/privacy`,

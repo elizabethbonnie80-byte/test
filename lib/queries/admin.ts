@@ -134,6 +134,108 @@ export async function setPenaltyThresholds(
   return { nearClosingDays: r.near_closing_days, nearCofDays: r.near_cof_days }
 }
 
+// ── Broker admins (client feedback 2026-07-20 #8) ──────────────────────────────
+
+export type BrokerRow = {
+  id: string
+  firstName: string
+  lastName: string
+  phone: string | null
+  brokerage: string | null
+  isBrokerAdmin: boolean
+  createdAt: string
+}
+
+/**
+ * Every broker with their brokerage + broker-admin flag. Admin-only: the profiles RLS read policy is
+ * `id = auth.uid() or is_admin()`. The brokerage embed needs the FK hint (profiles has more than one
+ * FK into the org tables → PGRST201 otherwise).
+ */
+export async function listBrokers(supabase: DB): Promise<BrokerRow[]> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select(
+      "id, first_name, last_name, phone, is_broker_admin, created_at, brokerages!profiles_brokerage_id_fkey(name)",
+    )
+    .eq("role", "broker")
+    .order("created_at", { ascending: false })
+  if (error) throw new Error(error.message)
+  return (data ?? []).map((p) => {
+    const b = Array.isArray(p.brokerages) ? p.brokerages[0] : p.brokerages
+    return {
+      id: p.id,
+      firstName: p.first_name,
+      lastName: p.last_name,
+      phone: p.phone,
+      brokerage: b?.name ?? null,
+      isBrokerAdmin: p.is_broker_admin,
+      createdAt: p.created_at,
+    }
+  })
+}
+
+/**
+ * Mark / unmark a broker as an admin for their brokerage. A direct admin UPDATE on
+ * profiles.is_broker_admin — allowed by `profiles_admin_update` plus the privilege guard's is_admin()
+ * exemption, so no RPC is needed (same shape as setLenderPenalty).
+ *
+ * NOTE: Bubble auto-granted this to the first broker of a brokerage (OQ#23). That is deliberately NOT
+ * restored — the client asked to manage it here explicitly instead (feedback 2026-07-20 #8).
+ */
+export async function setBrokerAdmin(supabase: DB, brokerId: string, isAdmin: boolean) {
+  const { error } = await supabase.from("profiles").update({ is_broker_admin: isAdmin }).eq("id", brokerId)
+  if (error) throw new Error(error.message)
+}
+
+// ── Organizations: brokerages + lender institutions (client feedback 2026-07-20 #9) ────
+
+/** The two org lookup tables share an identical shape (id, name unique, is_active, created_at). */
+export type OrgTable = "brokerages" | "lender_institutions"
+
+export type AdminOrg = {
+  id: string
+  name: string
+  isActive: boolean
+  createdAt: string
+}
+
+/**
+ * Every organization of one kind, INCLUDING inactive ones (the signup dropdowns use the active-only
+ * readers in lib/queries/lookups.ts). Writes below are plain inserts/updates — the `lookup_write` /
+ * `inst_write` RLS policies are already `for all … using (is_admin())`, so no RPC is needed.
+ */
+export async function listOrganizations(supabase: DB, table: OrgTable): Promise<AdminOrg[]> {
+  const { data, error } = await supabase.from(table).select("id, name, is_active, created_at").order("name")
+  if (error) throw new Error(error.message)
+  return (data ?? []).map((o) => ({
+    id: o.id,
+    name: o.name,
+    isActive: o.is_active,
+    createdAt: o.created_at,
+  }))
+}
+
+/** `name` is UNIQUE on both tables — surface the duplicate as a friendly error, not a raw PG one. */
+export async function createOrganization(supabase: DB, table: OrgTable, name: string) {
+  const { error } = await supabase.from(table).insert({ name: name.trim() })
+  if (error) throw new Error(error.code === "23505" ? "DUPLICATE_NAME" : error.message)
+}
+
+export async function renameOrganization(supabase: DB, table: OrgTable, id: string, name: string) {
+  const { error } = await supabase.from(table).update({ name: name.trim() }).eq("id", id)
+  if (error) throw new Error(error.code === "23505" ? "DUPLICATE_NAME" : error.message)
+}
+
+/**
+ * Deactivate rather than delete: profiles/deals carry FKs into these tables, so a delete would either
+ * fail or orphan real records. `is_active = false` already hides the row from the signup dropdowns
+ * (the anon read policies from migration 18 filter on is_active).
+ */
+export async function setOrganizationActive(supabase: DB, table: OrgTable, id: string, active: boolean) {
+  const { error } = await supabase.from(table).update({ is_active: active }).eq("id", id)
+  if (error) throw new Error(error.message)
+}
+
 // ── Admin alerts (flagged content) ─────────────────────────────────────────────
 
 export type AdminAlert = {
