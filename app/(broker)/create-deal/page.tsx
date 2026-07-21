@@ -342,8 +342,9 @@ export default function CreateDealPage() {
       doorTitlesCount: ownsOtherProperties ? num(doorTitlesCount) : null,
       residencyStatuses,
       downPaymentSources,
-      assetsLiquidValue: networthProgram ? num(assetsLiquidValue) : null,
-      assetsTotalValue: networthProgram ? num(assetsTotalValue) : null,
+      // Saved whether or not Networth is checked — the fields are always available (2026-07-20 #4).
+      assetsLiquidValue: num(assetsLiquidValue),
+      assetsTotalValue: num(assetsTotalValue),
       transunionBeingUsed,
       noLenderExceptionsRequired,
       foreignIncomeCountry,
@@ -1085,42 +1086,42 @@ export default function CreateDealPage() {
                   </div>
                 </div>
 
-                {networthProgram && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="assetsLiquidValue">{t("assetsLiquidValue")}<Req /></Label>
-                      <div className="relative">
-                        <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="assetsLiquidValue"
-                          type="text"
-                          inputMode="numeric"
-                          placeholder={t("assetsLiquidValuePlaceholder")}
-                          value={groupThousands(assetsLiquidValue)}
-                          onChange={(e) => setAssetsLiquidValue(e.target.value.replace(/[^\d]/g, ""))}
-                          className={`pl-10 bg-muted/50 ${errCls(invalid("qualifying", assetsLiquidValue))}`}
-                        />
-                      </div>
-                      <FieldError show={invalid("qualifying", assetsLiquidValue)} />
+                {/* Assets are ALWAYS available (client feedback 2026-07-20 #4) — they're only MANDATORY
+                    when the Networth program is checked, so the asterisk + inline error are gated on it. */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="assetsLiquidValue">{t("assetsLiquidValue")}{networthProgram && <Req />}</Label>
+                    <div className="relative">
+                      <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="assetsLiquidValue"
+                        type="text"
+                        inputMode="numeric"
+                        placeholder={t("assetsLiquidValuePlaceholder")}
+                        value={groupThousands(assetsLiquidValue)}
+                        onChange={(e) => setAssetsLiquidValue(e.target.value.replace(/[^\d]/g, ""))}
+                        className={`pl-10 bg-muted/50 ${errCls(networthProgram && invalid("qualifying", assetsLiquidValue))}`}
+                      />
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="assetsTotalValue">{t("assetsTotalValue")}<Req /></Label>
-                      <div className="relative">
-                        <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="assetsTotalValue"
-                          type="text"
-                          inputMode="numeric"
-                          placeholder={t("assetsTotalValuePlaceholder")}
-                          value={groupThousands(assetsTotalValue)}
-                          onChange={(e) => setAssetsTotalValue(e.target.value.replace(/[^\d]/g, ""))}
-                          className={`pl-10 bg-muted/50 ${errCls(invalid("qualifying", assetsTotalValue))}`}
-                        />
-                      </div>
-                      <FieldError show={invalid("qualifying", assetsTotalValue)} />
-                    </div>
+                    <FieldError show={networthProgram && invalid("qualifying", assetsLiquidValue)} />
                   </div>
-                )}
+                  <div className="space-y-2">
+                    <Label htmlFor="assetsTotalValue">{t("assetsTotalValue")}{networthProgram && <Req />}</Label>
+                    <div className="relative">
+                      <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="assetsTotalValue"
+                        type="text"
+                        inputMode="numeric"
+                        placeholder={t("assetsTotalValuePlaceholder")}
+                        value={groupThousands(assetsTotalValue)}
+                        onChange={(e) => setAssetsTotalValue(e.target.value.replace(/[^\d]/g, ""))}
+                        className={`pl-10 bg-muted/50 ${errCls(networthProgram && invalid("qualifying", assetsTotalValue))}`}
+                      />
+                    </div>
+                    <FieldError show={networthProgram && invalid("qualifying", assetsTotalValue)} />
+                  </div>
+                </div>
 
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">

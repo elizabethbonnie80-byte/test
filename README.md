@@ -195,9 +195,11 @@ local *with* or *without* email:
 - **Signup email confirmation** (the 6-digit **code** flow): `pnpm auth:confirm:on` / `pnpm auth:confirm:off`
   flips `[auth.email] enable_confirmations` in `config.toml` — then apply with `pnpm db:stop && pnpm
   db:start` (auth reads config at startup; data is preserved). Default OFF = instant signup (fast local).
-  When ON, sign-up shows the code screen (`app/sign-up` → `verifyOtp`); the confirmation email carrying the
-  code lands in **Mailpit → <http://127.0.0.1:54324>** (no real send needed). Keep `enable_confirmations =
-  false` committed — the toggle is a local convenience, don't commit the flip.
+  When ON, sign-up shows the code screen (`app/sign-up` → `verifyOtp`) for **both brokers and lenders** —
+  a lender confirms the code first and only then lands on the approval-wait screen (skipping it left their
+  email unconfirmed and locked them out; see `docs/client-revisions-2026-07-20.md` #12). The confirmation
+  email carrying the code lands in **Mailpit → <http://127.0.0.1:54324>** (no real send needed). Keep
+  `enable_confirmations = false` committed — the toggle is a local convenience, don't commit the flip.
 
 ## Everyday commands
 

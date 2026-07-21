@@ -24,10 +24,11 @@ then QA → merge to `staging` → deploy → promote to prod, per the usual flo
   FR moved to the parallel official abbreviation "ACE (moins de 15 ans)" (Allocation canadienne pour enfants).
 - [x] **#3 — Renamed down-payment source → "Borrowed Downpayment".** `lib/enums.ts`
   `down_payment_source.borrowed` (FR "Mise de fonds empruntée").
-- [ ] **#4 — Assets fields always visible; required only when Networth is checked.** Today the two asset
-  fields ("Total value of assets (liquid assets only)" / "…including non-liquid assets") only render when
-  Networth is checked. Change: render them always; gate the *required* validation on `networthProgram`.
-  `app/(broker)/create-deal/page.tsx`. **Behavior, small.**
+- [x] **#4 — Assets fields always visible; required only when Networth is checked.** The two asset fields
+  now render unconditionally in `app/(broker)/create-deal/page.tsx`; the red `*` and the inline
+  "field required" error are gated on `networthProgram` (the section-complete rule already was). Also:
+  `collectInput` now PERSISTS both values regardless of the Networth checkbox — previously it wrote `null`
+  when Networth was unchecked, which would have discarded anything typed into the now-always-visible fields.
 - [blocked] **#5 — Merge the two "Passive" income types back into one.** Today `lib/enums.ts` has both
   `passive_income` ("Passive Income") and `passive_retired_income` ("Passive/Retired Income"); the client
   wants them un-separated ("what we had before"). Needs: (a) **client decision on the single canonical

@@ -88,6 +88,18 @@ The list-window thresholds (OQ#18), the Confirm-Lender removal
 (OQ#21), and the Contact-Us wiring are Round 3 items implemented per-phase — see `docs/round3-progress.md`
 for exact status; don't re-derive scope from `open-questions.md` for these three, Round 3 supersedes them.
 
+## Post-Round-3 client feedback (2026-07-20 batch)
+
+After Phase 1+2 went live the client sent a 12-item revision list (source email:
+`docs/details_20_07.pdf`). It is tracked item-by-item in **[`docs/client-revisions-2026-07-20.md`](./docs/client-revisions-2026-07-20.md)**
+— read it before touching Create Deal labels, the lender approval/signup flow, or the admin portal.
+Shipped so far (live on staging + prod): the auth fixes (#11 idempotent approval, #12 both roles confirm
+email) and the label revisions (#1 Credit Issues hint removed, #2 "CCB (under 15 years old)", #3 "Borrowed
+Downpayment", #6 "Hobby Farm"/"Recreational Property"), plus #4 (assets always visible, mandatory only with
+Networth). Still open: **#8/#9** (admin portal — mark broker admins; add brokerages/lenders), **#5** (merge
+the two "Passive" income types — BLOCKED on the client's choice of canonical label, needs a data migration),
+and **#7** (prequal required when there's no address — belongs to the Phase 3 prequal flow, other dev).
+
 ## Stack
 
 - **Next.js 16 (App Router) + React 19 + TypeScript**, package manager **pnpm**.
@@ -283,9 +295,13 @@ Round 3 Create Deal fields as saved-filter criteria**: `saved_filters` gains `cr
 spouse-not-on-application / TransUnion], `assets_liquid_min`/`assets_total_min`/`max_door_titles` bounds +
 `require_no_exceptions`; `saved_filter_matches` enforces them null-safely [filter-only — the weighted match
 engine is untouched] and `open_deals_filtered`/`maturing_deals_filtered` gain the matching trailing params,
-the 4 flags riding the existing `p_others_excluded` key list). **Hosted status: migrations 36–43 (Round 3
-Phase 1 + Phase 2) are applied to BOTH staging AND prod** (staging: 36–39 on 2026-07-14, 40–43 on 2026-07-17;
-**prod: all 36–43 on 2026-07-17**, promoted with `contact-us`/`invoice-pdf` deployed + `main`→Vercel Production).
+the 4 flags riding the existing `p_others_excluded` key list) · `44_idempotent_lender_approval` (**client
+feedback 2026-07-20 #11**: approving a lender sent TWO "approved" emails. The DB path is single by
+construction — one `notify()` → one row → one AFTER INSERT trigger → one email — so the duplicate came from
+`approve_lender` being INVOKED twice. `approve_lender`/`reject_lender` are now **idempotent**: they only
+transition + notify on a real status change, so re-approving an already-approved lender is a no-op with no
+second email; a non-existent id still errors. Signatures unchanged). **Hosted status: migrations 36–44 are
+applied to BOTH staging AND prod** (36–39 on 2026-07-14; 40–43 on 2026-07-17; **44 on 2026-07-21**).
 
 **Wired to Supabase (real data + verified):** sign-in (role redirect) · **password reset** (**OTP-code flow**:
 `/forgot-password` is 2-step — email → `resetPasswordForEmail`, then a **6-digit code** + new password →
@@ -297,7 +313,10 @@ sign-up (broker → active →
 `/deal-room`; lender → `pending_approval` → pending screen + admin queue; org dropdowns from the DB via
 `lib/queries/lookups.ts`; access code dropped pending OQ#22; **when email confirmations are ON** [hosted]
 sign-up shows an in-app **OTP code screen** [`verifyOtp`, length-agnostic 6–8-digit input — hosted OTP is 8]
-→ auto-login → broker `/deal-room`, lender → approval-wait; delivered via Resend as Auth SMTP) · **lender approval gate** (server layout
+for **BOTH roles** — the handler branches on `hasSession` first, then role, so a broker lands on
+`/deal-room` and a lender on the approval-wait screen only AFTER confirming. ⚠️ Don't "shortcut" the lender
+straight to approval-wait: that was client bug 2026-07-20 #12 — their email stayed unconfirmed and they could
+never sign in (no code field on sign-in). Delivered via Resend as Auth SMTP) · **lender approval gate** (server layout
 `app/lender/layout.tsx` redirects an unapproved lender to the `/pending-approval` holding page —
 pending or rejected+reason; sign-in routes them there directly; approved lenders unaffected) ·
 create-deal (submit) ·
