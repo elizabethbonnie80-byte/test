@@ -10,19 +10,20 @@ then QA → merge to `staging` → deploy → promote to prod, per the usual flo
 (#7) — the other dev owns the prequal flow.
 
 ## Legend
+
 `[ ]` todo · `[~]` in progress · `[x]` done · `[blocked]` needs input/other work
 
 ---
 
 ## A) Create Deal
 
-- [ ] **#1 — Remove the Credit Issues helper text.** Delete *"(Choose most severe and include in credit
-  notes if multiple)"* — no longer applies now that Credit Issues is a multi-select. `messages/{en,fr}.json`
-  `createDeal.creditIssuesHint` + its render in `app/(broker)/create-deal/page.tsx`. **Label/text, trivial.**
-- [ ] **#2 — Rename income "Child Care Benefit (under 15)" → "CCB (under 15 years old)".**
-  `lib/enums.ts` `income_type.ccb_under_15` (EN; decide whether to touch FR). **Label, trivial.**
-- [ ] **#3 — Rename down-payment source "Borrowed" → "Borrowed Downpayment".**
-  `lib/enums.ts` `down_payment_source.borrowed`. **Label, trivial.**
+- [x] **#1 — Remove the Credit Issues helper text.** Deleted *"(Choose most severe and include in credit
+  notes if multiple)"* — no longer applies now that Credit Issues is a multi-select. Removed the render in
+  `app/(broker)/create-deal/page.tsx` and the `createDeal.creditIssuesHint` key from both catalogs.
+- [x] **#2 — Renamed income → "CCB (under 15 years old)".** `lib/enums.ts` `income_type.ccb_under_15`;
+  FR moved to the parallel official abbreviation "ACE (moins de 15 ans)" (Allocation canadienne pour enfants).
+- [x] **#3 — Renamed down-payment source → "Borrowed Downpayment".** `lib/enums.ts`
+  `down_payment_source.borrowed` (FR "Mise de fonds empruntée").
 - [ ] **#4 — Assets fields always visible; required only when Networth is checked.** Today the two asset
   fields ("Total value of assets (liquid assets only)" / "…including non-liquid assets") only render when
   Networth is checked. Change: render them always; gate the *required* validation on `networthProgram`.
@@ -32,10 +33,11 @@ then QA → merge to `staging` → deploy → promote to prod, per the usual flo
   wants them un-separated ("what we had before"). Needs: (a) **client decision on the single canonical
   label/value**, (b) a **migration** to backfill `deal_income_types` rows from the dropped value + saved
   filters, then remove the duplicate from the UI options. **Data-model, medium — needs the label decision.**
-- [ ] **#6 — Rename dwelling-type dropdown options "Farm" → "Hobby Farm", "Recreational" → "Recreational
-  Property".** `lib/enums.ts` `dwelling_type.farm` / `dwelling_type.recreational` (lines ~152-153). NOTE:
-  distinct from the property FLAGS `hobby_farm`/`recreational_property` (already labeled correctly).
-  **Label, trivial.**
+- [x] **#6 — Renamed dwelling-type options → "Hobby Farm" / "Recreational Property".** `lib/enums.ts`
+  `dwelling_type.farm` ("Ferme d'agrément") and `dwelling_type.recreational` ("Propriété récréative").
+  NOTE: these are the DWELLING dropdown options, distinct from the property FLAGS
+  `hobby_farm`/`recreational_property` — the `recreational_property` flag is still labeled just
+  "Recreational"; flag up to the client if they want that aligned too.
 - [blocked] **#7 — No property address ⇒ should require the prequal button (and doesn't).** The Prequal →
   Live Deal flow is **Phase 3** (not built yet, owned by the other dev). Defer — note it against Phase 3.
 
@@ -70,9 +72,10 @@ then QA → merge to `staging` → deploy → promote to prod, per the usual flo
 ---
 
 ## Suggested order
-1. **Auth bugs (#10, #11, #12)** — they block the client from testing the lender portal. **← starting here.**
-2. **Quick label wins (#1, #2, #3, #6)** — one commit, low risk.
-3. **Behavior (#4).**
+
+1. ~~**Auth bugs (#10, #11, #12)**~~ — **DONE** (migration 44 + signup code-screen fix + staging admin enabled).
+2. ~~**Quick label wins (#1, #2, #3, #6)**~~ — **DONE.**
+3. **Behavior (#4)** ← next.
 4. **Income merge (#5)** — once the client confirms the canonical label.
 5. **Admin features (#8, #9)** — a mini-batch of their own.
 6. **#7** — deferred to Phase 3 (other dev).

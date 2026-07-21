@@ -949,12 +949,11 @@ export default function CreateDealPage() {
                   </div>
                 </div>
 
-                {/* Credit Issues on its own row — the label + hint need the full width (was cramped in a 3-col grid). */}
+                {/* Credit Issues on its own row — the label needs the full width (was cramped in a 3-col grid).
+                    The old "(Choose most severe…)" hint was removed per client feedback 2026-07-20 (#1): it no
+                    longer applies now that Credit Issues is a multi-select. */}
                 <div className="space-y-3">
-                  <Label className="text-sm font-medium">
-                    {t("creditIssuesMulti")}{" "}
-                    <span className="font-normal text-xs text-muted-foreground">{t("creditIssuesHint")}</span>
-                  </Label>
+                  <Label className="text-sm font-medium">{t("creditIssuesMulti")}</Label>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                     {CREDIT_ISSUE_OPTIONS.map((o) => (
                       <div key={o.value} className="flex items-center gap-2">

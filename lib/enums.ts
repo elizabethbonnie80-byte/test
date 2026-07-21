@@ -91,7 +91,7 @@ const INCOME_TYPE: Record<Enums["income_type"], Bi> = {
   self_employed_stated: ["Self-Employed (Stated)", "Travailleur autonome (revenu déclaré)"],
   passive_income: ["Passive Income", "Revenu passif"],
   passive_retired_income: ["Passive/Retired Income", "Revenu passif/de retraite"],
-  ccb_under_15: ["Child Care Benefit (under 15)", "Allocation canadienne pour enfants (moins de 15 ans)"],
+  ccb_under_15: ["CCB (under 15 years old)", "ACE (moins de 15 ans)"],
   rental_income: ["Rental Income", "Revenu locatif"],
   child_support_alimony: ["Child Support/Alimony", "Pension alimentaire"],
   long_term_disability: ["Long-Term Disability", "Invalidité de longue durée"],
@@ -112,7 +112,7 @@ const DOWN_PAYMENT_SOURCE: Record<Enums["down_payment_source"], Bi> = {
   fthb_rrsp_fhsa: ["FTHB RRSP/FHSA", "REER/CELIAPP (premier acheteur)"],
   gift_from_family: ["Gift from Family", "Don de la famille"],
   sale_of_existing_property: ["Sale of Existing Property", "Vente d'une propriété existante"],
-  borrowed: ["Borrowed", "Emprunté"],
+  borrowed: ["Borrowed Downpayment", "Mise de fonds empruntée"],
   foreign_funds: ["Foreign Funds", "Fonds étrangers"],
   rent_to_own_credit: ["Rent-to-Own Credit", "Crédit location-achat"],
 }
@@ -149,8 +149,8 @@ const DWELLING_TYPE: Record<Enums["dwelling_type"], Bi> = {
   fourplex: ["Fourplex", "Quadruplex"],
   mobile_home: ["Mobile Home", "Maison mobile"],
   modular_home: ["Modular Home", "Maison modulaire"],
-  farm: ["Farm", "Ferme"],
-  recreational: ["Recreational", "Récréative"],
+  farm: ["Hobby Farm", "Ferme d'agrément"],
+  recreational: ["Recreational Property", "Propriété récréative"],
 }
 
 const DEAL_STATUS: Record<Enums["deal_status"], Bi> = {
