@@ -54,11 +54,14 @@ export function LogoMarquee() {
   // Long lists should not scroll faster; keep a steady ~6s per logo.
   const duration = `${Math.max(20, logos.length * 6)}s`
 
+  // NB: the row must never wrap and the images must never shrink, in either mode. If the row could
+  // wrap it would always fit, scrollWidth would never exceed clientWidth, and the measurement below
+  // could never flip a long list into scrolling mode.
   const row = (hidden: boolean) => (
     <div
       ref={hidden ? undefined : passRef}
       aria-hidden={hidden || undefined}
-      className={`flex items-center gap-12 ${scrolls ? 'shrink-0 pr-12' : 'flex-wrap justify-center'}`}
+      className={`flex items-center gap-12 shrink-0 ${scrolls ? 'pr-12' : 'justify-center'}`}
     >
       {logos.map((logo) => (
         // eslint-disable-next-line @next/next/no-img-element -- Storage URLs are runtime data, not build-time assets
@@ -66,7 +69,7 @@ export function LogoMarquee() {
           key={logo.id}
           src={logo.url}
           alt={hidden ? '' : logo.name}
-          className="h-10 w-auto object-contain opacity-70 grayscale hover:opacity-100 hover:grayscale-0 transition"
+          className="h-10 w-auto shrink-0 object-contain opacity-70 grayscale hover:opacity-100 hover:grayscale-0 transition"
         />
       ))}
     </div>
