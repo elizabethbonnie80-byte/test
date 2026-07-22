@@ -1,23 +1,31 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { listActiveLogos, type LenderLogo } from '@/lib/queries/logos'
 import { useT } from '@/components/i18n-provider'
 
 /**
- * Round 3 Phase 3 — the scrolling lender logos on the sign-in page. The list is admin-maintained
+ * Round 3 Phase 3 — the lender logos on the sign-in page. The list is admin-maintained
  * (/admin/logos) and anon-readable, so this runs fine on the unauthenticated page.
  *
  * Renders NOTHING until there is at least one logo: an empty strip (or a "no logos yet" message) on
- * the login page would be worse than no strip at all. The track repeats the list twice and animates to
- * -50% for a seamless loop (see `.ll-marquee` in globals.css); hovering pauses it, and it holds still
- * under prefers-reduced-motion.
+ * the login page would be worse than no strip at all.
+ *
+ * It only SCROLLS once one pass of the list is wider than the strip. With a handful of logos the list
+ * is narrower than the strip, and translating it -50% simply walked it off the left edge and left the
+ * rest of the strip blank — so a short list is centred and held still instead. When it does scroll,
+ * the track holds the list twice and animates to -50% for a seamless loop (see `.ll-marquee` in
+ * globals.css); each pass carries a trailing gap so the seam spacing matches the internal spacing.
+ * Hovering pauses it, and it holds still under prefers-reduced-motion.
  */
 export function LogoMarquee() {
   const supabase = useMemo(() => createClient(), [])
   const t = useT('signIn')
   const [logos, setLogos] = useState<LenderLogo[]>([])
+  const stripRef = useRef<HTMLDivElement>(null)
+  const passRef = useRef<HTMLDivElement>(null)
+  const [scrolls, setScrolls] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -27,35 +35,62 @@ export function LogoMarquee() {
     return () => { active = false }
   }, [supabase])
 
+  // Measure rather than guess: logo widths vary (a square icon vs a wide wordmark), so the number of
+  // logos alone doesn't say whether the list overflows. Re-measures on resize and as images load.
+  useEffect(() => {
+    const strip = stripRef.current
+    const pass = passRef.current
+    if (!strip || !pass || logos.length === 0) return
+    const measure = () => setScrolls(pass.scrollWidth > strip.clientWidth)
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(strip)
+    observer.observe(pass)
+    return () => observer.disconnect()
+  }, [logos])
+
   if (logos.length === 0) return null
 
   // Long lists should not scroll faster; keep a steady ~6s per logo.
   const duration = `${Math.max(20, logos.length * 6)}s`
+
+  const row = (hidden: boolean) => (
+    <div
+      ref={hidden ? undefined : passRef}
+      aria-hidden={hidden || undefined}
+      className={`flex items-center gap-12 ${scrolls ? 'shrink-0 pr-12' : 'flex-wrap justify-center'}`}
+    >
+      {logos.map((logo) => (
+        // eslint-disable-next-line @next/next/no-img-element -- Storage URLs are runtime data, not build-time assets
+        <img
+          key={logo.id}
+          src={logo.url}
+          alt={hidden ? '' : logo.name}
+          className="h-10 w-auto object-contain opacity-70 grayscale hover:opacity-100 hover:grayscale-0 transition"
+        />
+      ))}
+    </div>
+  )
 
   return (
     <section className="w-full max-w-4xl mx-auto mt-12" aria-label={t('logosLabel')}>
       <p className="text-center text-xs uppercase tracking-wide text-muted-foreground mb-4">
         {t('logosHeading')}
       </p>
-      <div className="ll-marquee relative overflow-hidden">
-        {/* fade the edges so logos slide in/out instead of popping */}
-        <div className="pointer-events-none absolute inset-y-0 left-0 w-12 bg-gradient-to-r from-background to-transparent z-10" />
-        <div className="pointer-events-none absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-background to-transparent z-10" />
+      <div ref={stripRef} className="ll-marquee relative overflow-hidden">
+        {/* fade the edges so logos slide in/out instead of popping — only while it moves */}
+        {scrolls && (
+          <>
+            <div className="pointer-events-none absolute inset-y-0 left-0 w-12 bg-gradient-to-r from-background to-transparent z-10" />
+            <div className="pointer-events-none absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-background to-transparent z-10" />
+          </>
+        )}
         <div
-          className="ll-marquee-track flex items-center gap-12 w-max"
-          style={{ ['--ll-marquee-duration' as string]: duration }}
+          className={scrolls ? 'll-marquee-track flex w-max' : 'flex justify-center'}
+          style={scrolls ? { ['--ll-marquee-duration' as string]: duration } : undefined}
         >
-          {[...logos, ...logos].map((logo, i) => (
-            // eslint-disable-next-line @next/next/no-img-element -- Storage URLs are runtime data, not build-time assets
-            <img
-              key={`${logo.id}-${i}`}
-              src={logo.url}
-              alt={logo.name}
-              // the second copy is a visual duplicate — hide it from assistive tech
-              aria-hidden={i >= logos.length}
-              className="h-10 w-auto object-contain opacity-70 grayscale hover:opacity-100 hover:grayscale-0 transition"
-            />
-          ))}
+          {row(false)}
+          {scrolls && row(true)}
         </div>
       </div>
     </section>
