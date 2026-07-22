@@ -119,9 +119,14 @@ message.
   reasoning as the brokerages/lender institutions. Verified before shipping: **no deal and no saved
   filter on prod used any of the three**. `dwellingToPropertyType` also learned the new values
   (apartments → Condo, duplex variants → Multi-Family).
-- [x] **"Recreational" checkbox → "Recreational Property"** — the property FLAG label
-  (`PROPERTY_FLAG_TABLE.recreational_property`). This is the alignment flagged as an open question under
-  #6 above; the client has now confirmed it.
+- [x] **"Recreational" checkbox → "Recreational Property"** — the alignment flagged as an open question
+  under #6 above; the client has now confirmed it.
+  ⚠️ **This label lived in TWO places** and the first commit only changed one. `PROPERTY_FLAG_TABLE` in
+  `lib/enums.ts` feeds the lender Filters sidepanel and the deal-detail sections; the **Create Deal
+  checkbox** — the screen the client was actually looking at — renders `t('recreational')` from
+  `createDeal.*` in the i18n catalogs. So the rename landed everywhere except the screen that prompted it,
+  and neither `pnpm check` nor the smokes noticed: the key resolved fine, it just said the old thing. Both
+  sources now agree. Standing rule added under Conventions → i18n in `CLAUDE.md`.
 - [x] **Test users the client created on the LIVE site** — removed 2026-07-22 with the user's explicit
   go-ahead. Three broker accounts (`bonniec@`, `bonniec+verico@`, `bonniec+dlc@dominionlending.ca`) with
   one deal each (DEAL-2026-1/2/3), no offers, invoices or documents. ⚠️ `deals.broker_id → profiles` is

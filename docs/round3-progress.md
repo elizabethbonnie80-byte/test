@@ -110,11 +110,11 @@ full smoke suite green (23/23 with the edge runtime served). New migrations: 45 
 name-match), 47 (auto-offers), 48 (prequal → live deal), 49 (feed RPCs expose `prequal`), 50 (login
 logos).
 
-**Phase 3 is LIVE ON STAGING (2026-07-22)** — `staging.lendermatch.ca`. Migrations 45–50 applied
-(50/50, advisors 0 ERROR), `match-document-name` + `purge-documents` deployed and `notify-email` +
-`invoice-pdf` redeployed, `APP_URL` secret set, `purge_documents_url` added to Vault (all 7 cron jobs
-active). **Prod is still on Phase 1+2** — promoting it is a separate, explicitly-authorised step
-(`docs/DEPLOY_RUNBOOK.md`), and prod still needs the same two config values.
+**Phase 3 is LIVE ON STAGING *AND* PROD (2026-07-22)** — `staging.lendermatch.ca` and
+`www.lendermatch.ca`, main/staging/dev in sync. Migrations applied to both (**51/51**, advisors 0 ERROR),
+`match-document-name` + `purge-documents` deployed and `notify-email` + `invoice-pdf` redeployed on both,
+`APP_URL` secret set and `purge_documents_url` added to Vault on both (7 cron jobs active each).
+**Round 3 is complete.**
 
 **Staging browser QA (2026-07-22)** — verified end to end, not just by inspection:
 - **Logos**: upload / rename / reorder / hide / delete; the marquee renders on `/sign-in` and shows only

@@ -333,13 +333,17 @@ so the New Deals card can badge it and the offer dialog can show the prequal fin
 `50_round3_phase3_lender_logos` (**login-page lender logos**: `lender_logos` + a PUBLIC `lender-logos`
 bucket; ACTIVE rows are **anon-readable** because the sign-in page is unauthenticated, writes are
 `is_admin()`-only on both the table and the objects; managed at `/admin/logos`).
-**Hosted status: migrations 36–44 are
-applied to BOTH staging AND prod** (36–39 on 2026-07-14; 40–43 on 2026-07-17; **44 on 2026-07-21**);
-**45–50 are on STAGING ONLY** (applied 2026-07-22, 50/50, advisors 0 ERROR, browser-QA'd — **prod is
-still on Phase 1+2**). The Phase 3 staging deploy also shipped `match-document-name` + `purge-documents`
-(new) and redeployed `notify-email` + `invoice-pdf`; staging config added the `APP_URL` secret (the
+`51_dwelling_types_client_revision` (**client revision 2026-07-22**: adds the `duplex_detached` /
+`duplex_semi_detached` / `apartment_low_rise` / `apartment_high_rise` dwelling types. `condo_apartment`,
+`farm` and `recreational` are **retired, NOT dropped** — Postgres can't remove an enum value in place and
+a historical deal could still carry one, so they keep their labels in `lib/enums.ts` and are filtered out
+of every picker by `RETIRED_DWELLING_TYPES`; same "retire, never delete" rule as brokerages/institutions).
+**Hosted status: migrations 36–51 are applied to BOTH staging AND prod**
+(36–39 on 2026-07-14; 40–43 on 2026-07-17; 44 on 2026-07-21; **45–51 on 2026-07-22** — 51/51 on each,
+advisors 0 ERROR, browser-QA'd). That deploy also shipped `match-document-name` + `purge-documents` (new)
+and redeployed `notify-email` + `invoice-pdf`; **both** environments now have the `APP_URL` secret (the
 auto-offer digest's edit link) and the `purge_documents_url` Vault secret (the retention cron reads
-GUC → Vault like the email trigger, so it stays a no-op until that exists — **prod still needs both**).
+GUC → Vault like the email trigger, so it no-ops until that exists).
 
 **Wired to Supabase (real data + verified):** sign-in (role redirect) · **password reset** (**OTP-code flow**:
 `/forgot-password` is 2-step — email → `resetPasswordForEmail`, then a **6-digit code** + new password →
@@ -530,11 +534,12 @@ read it before touching hosted infra. Current state:
   framework `nextjs`.
 - **Branch/env model**: `staging` = **base dev branch** → Vercel Preview → **staging** Supabase; `main` = prod →
   Production → **prod** Supabase (merge `staging`→`main` ONLY to deploy prod). `NEXT_PUBLIC_*` are build-time.
-- **Status**: **both live and on Round 3 Phase 1 + Phase 2 (incl. the LenderMatch™ rebrand + logo/favicon).**
-  **prod** live at **`www.lendermatch.ca`** (bring-up 2026-07-11; **promoted to Phase 1+2 on 2026-07-17**:
-  migrations 36–43 applied [43/43, advisors 0 ERROR], `contact-us` + `invoice-pdf` deployed, `main` @ `7058aa5`
-  → Vercel Production, renders "LenderMatch™" + logo). **staging** live + seeded at **`staging.lendermatch.ca`**
-  (`/sign-in` 200; demo accounts `Test1234!`), same `7058aa5`. main/staging/dev are all in sync at `7058aa5`.
+- **Status**: **both live on ALL of Round 3 (Phases 1–3) + both client-revision batches, as of 2026-07-22.**
+  **prod** at **`www.lendermatch.ca`**, **staging** at **`staging.lendermatch.ca`** (seeded; demo accounts
+  `Test1234!`), main/staging/dev all in sync — **51/51 migrations on each, advisors 0 ERROR**. Prod holds
+  only `admin@lendermatch.ca` and no deals: the client's own test accounts were deleted on 2026-07-22 at
+  their request (see `docs/client-revisions-2026-07-20.md` §D — one of them was a stranded lender signup
+  from before the #12 fix, invisible to any `profiles`-joined query because it had no profile row).
   The Auth email templates live in each Supabase dashboard (Auth → Email Templates), **not in git** — so a
   rebrand has to be applied there by hand. The "Confirm signup" template was updated to LenderMatch™ on both
   envs (2026-07-22); keep that step in mind for any future brand/copy change. Old dev
@@ -747,7 +752,14 @@ on several sets — any data migration must map **by display label** using the t
   create-deal wizard, lender portal, shared dialogs [make-offer, survey], public/contact, all 8 admin
   pages) and `lib/enums.ts` labels are bilingual `[en,fr]` tuples surfaced via the **`useEnums()`** hook
   (`lib/use-enums.ts`) — use it in client components instead of the static EN exports. A repo-wide check
-  confirms every `t()` key resolves in both catalogs (no dotted-path fallbacks). Deliberately left English
+  confirms every `t()` key resolves in both catalogs (no dotted-path fallbacks).
+  ⚠️ **Some labels exist in BOTH `lib/enums.ts` and the i18n catalogs, and changing one does not change the
+  other.** The property flags are the known case: the lender Filters sidepanel and the deal-detail sections
+  read `enums.PROPERTY_FLAGS`, while the Create Deal checkboxes render `t('…')` from `createDeal.*`. Renaming
+  "Recreational" → "Recreational Property" in enums alone updated every screen EXCEPT the one the client had
+  asked about (2026-07-22). Neither `pnpm check` nor the smokes catch this — the key resolves fine, it just
+  says the old thing. **Grep the label text across `lib/` AND `messages/` before assuming one edit is enough,
+  and confirm the change on the actual screen.** Deliberately left English
   (small, documented in `docs/backlog.md` §2): SQL/query-generated strings (`best_match_for` criterion
   names, the anti-contact `{reason}` fragment, `inv.term` codes, the saved-filter `criteriaPreview`,
   `alertSourceLabel`) and CSV **export** column headers. FR mortgage-ratio acronyms are the official
