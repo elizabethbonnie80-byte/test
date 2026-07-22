@@ -722,9 +722,15 @@ on several sets — any data migration must map **by display label** using the t
   the Radix interactive roles (menuitem/option/tab/switch/checkbox/radio) app-wide — don't remove it.
   Shared primitives to reuse: **`PasswordInput`** (`components/ui/password-input.tsx` — show/hide eye;
   used on sign-in/sign-up/reset-password), **`RowActions`** (`components/row-actions.tsx` — the
-  "Actions ▾" dropdown that replaces stacked per-row buttons, used across the admin tables + lender/invoices),
+  "Actions ▾" dropdown that replaces stacked per-row buttons, used across the admin tables + lender/invoices;
+  pass `destructive: true` rather than styling the item yourself — it maps to the menu's destructive
+  variant, and non-destructive items force their icon to the accent foreground on hover),
   and **`BrandMark`** (`components/brand-mark.tsx` — the LenderMatch™ logo + `BRAND` text; use it in every
   header instead of printing `BRAND` bare).
+  ⚠️ **`--accent` is a strong blue**, so any highlighted menu row / hovered select trigger is a solid blue
+  bar with white text. Anything that sets its own colour (a red label, a green icon, muted placeholder
+  text) has to be re-stated for the hover state or it ends up coloured-on-blue and unreadable — that bit
+  `RowActions` and `SelectTrigger` (fixed 2026-07-22). Check hover, not just the resting state.
   **`useLenderDealFeed`** (`hooks/use-lender-deal-feed.ts`) holds ALL the shared New Deals + Maturing feed
   logic (fetch/filters/saved-filter chips/selection/bulk actions/pagination/decline/message) — the two pages
   keep only their distinct cards ("new this week" badge vs match-% legend/badge); **`filter-fields.tsx`**

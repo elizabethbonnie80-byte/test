@@ -128,15 +128,31 @@ active). **Prod is still on Phase 1+2** — promoting it is a separate, explicit
   address**; accepting afterwards revealed the lender + invoiced 5 bps × $450k = $225, due = closing+21.
 - **Auto-offers**: created from lender Settings with the net-bps preview (45 → 40 net); left paused.
 
-Three defects found and fixed during that pass (each its own commit):
-1. the prequal path was unreachable in the wizard — see the item below;
+Defects found and fixed during that pass (each its own commit):
+1. the prequal path was **unreachable** in the wizard — see the item below;
 2. `fix(offers)` — the bps-deduction banner put three spans on one flex row, so when the fee label
    wrapped the deduction and the total collapsed into each other. Now two label/amount rows, in BOTH
    places that render it (Make Offer dialog + auto-offer editor);
 3. `fix(deal-detail)` — the closing date rendered **one day early** (`DATE` column → `new Date()` parses
    it as UTC midnight → previous day in every Canadian timezone). Date-only strings are now pinned to
    local noon before formatting, matching `lender/invoices`' `fmtDay`; deal-detail was the only place
-   in the app doing this.
+   in the app doing this;
+4. `fix(sign-in)` — the **logo strip never filled the strip**: the track always held the list twice and
+   translated -50%, which is only seamless once ONE pass is as wide as the strip, so a short list sat
+   against the left edge and then drifted off it. It now measures and either centres a short list or
+   scrolls a long one. Two follow-ups on the same fix, both worth remembering: the centred row must not
+   `flex-wrap` (a wrapping row always fits, so the measurement could never observe an overflow and the
+   marquee would have been dead for long lists), and the measurement must not lean on `ResizeObserver`
+   alone — each image re-measures on load, because the first synchronous measure can land before the
+   images have any width. ⚠️ **The switch INTO scrolling was never observed in the automated browser**:
+   the driven tab reports `visibilityState: "hidden"`, and browsers deliver neither rAF nor
+   ResizeObserver callbacks there. Confirm it in a visible window (a narrow viewport overflows the
+   6 staging logos);
+5. `fix(ui)` — **hover states**. `--accent` is a strong blue, so a highlighted menu row is a solid blue
+   bar: the red "Cancel" label and the green "Mark as paid" icon both stayed their own colour on top of
+   it, and a select trigger showing its placeholder kept grey text there. See the ⚠️ note under
+   Conventions → UI in `CLAUDE.md`; the rule is to re-state colour for the hover state, and to check
+   hover rather than only the resting state.
 
 ## Phase 3 — Heavy features (24 h)
 
