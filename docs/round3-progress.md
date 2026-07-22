@@ -108,10 +108,35 @@ because it's the highest-risk/most technical content (documents, AI matching, au
 **Phase 3 (24 h): all 5 items COMPLETE on `dev`** (2026-07-21) — `pnpm check` green, `pnpm build` green,
 full smoke suite green (23/23 with the edge runtime served). New migrations: 45 (documents), 46 (AI
 name-match), 47 (auto-offers), 48 (prequal → live deal), 49 (feed RPCs expose `prequal`), 50 (login
-logos). ⚠️ **NOT deployed**: migrations 45–50 are applied to the LOCAL database only — staging and prod
-are still on Phase 1+2. Deploying is a separate, explicitly-authorised step (see `docs/DEPLOY_RUNBOOK.md`),
-and the new edge functions (`match-document-name`, `purge-documents`) plus the Vault config for the
-document-purge cron and the optional `APP_URL` secret need to go with it.
+logos).
+
+**Phase 3 is LIVE ON STAGING (2026-07-22)** — `staging.lendermatch.ca`. Migrations 45–50 applied
+(50/50, advisors 0 ERROR), `match-document-name` + `purge-documents` deployed and `notify-email` +
+`invoice-pdf` redeployed, `APP_URL` secret set, `purge_documents_url` added to Vault (all 7 cron jobs
+active). **Prod is still on Phase 1+2** — promoting it is a separate, explicitly-authorised step
+(`docs/DEPLOY_RUNBOOK.md`), and prod still needs the same two config values.
+
+**Staging browser QA (2026-07-22)** — verified end to end, not just by inspection:
+- **Logos**: upload / rename / reorder / hide / delete; the marquee renders on `/sign-in` and shows only
+  ACTIVE rows. Bucket check from an unauthenticated client: `lender-logos` image **200**,
+  `deal-documents` **400** — public and private exactly where they should be.
+- **Documents + AI name-match**: submit blocked with the two cards red until both PDFs are attached;
+  Claude read both — consent "Maria Gonzalez" → verified, photo ID "Mary Gonzalez" → **variance**, and
+  the resulting invoice carried `client_name` "Maria Gonzalez" + `document_name` "Mary Gonzalez".
+- **Prequal**: submitted with NO address and NO closing date; accepting was refused ("Move this prequal
+  to a live deal…"); conversion kept the existing offer, notified the bidding lender **without the
+  address**; accepting afterwards revealed the lender + invoiced 5 bps × $450k = $225, due = closing+21.
+- **Auto-offers**: created from lender Settings with the net-bps preview (45 → 40 net); left paused.
+
+Three defects found and fixed during that pass (each its own commit):
+1. the prequal path was unreachable in the wizard — see the item below;
+2. `fix(offers)` — the bps-deduction banner put three spans on one flex row, so when the fee label
+   wrapped the deduction and the total collapsed into each other. Now two label/amount rows, in BOTH
+   places that render it (Make Offer dialog + auto-offer editor);
+3. `fix(deal-detail)` — the closing date rendered **one day early** (`DATE` column → `new Date()` parses
+   it as UTC midnight → previous day in every Canadian timezone). Date-only strings are now pinned to
+   local noon before formatting, matching `lender/invoices`' `fmtDay`; deal-detail was the only place
+   in the app doing this.
 
 ## Phase 3 — Heavy features (24 h)
 

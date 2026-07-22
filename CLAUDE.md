@@ -335,8 +335,11 @@ bucket; ACTIVE rows are **anon-readable** because the sign-in page is unauthenti
 `is_admin()`-only on both the table and the objects; managed at `/admin/logos`).
 **Hosted status: migrations 36–44 are
 applied to BOTH staging AND prod** (36–39 on 2026-07-14; 40–43 on 2026-07-17; **44 on 2026-07-21**);
-**45–50 are LOCAL ONLY** (Phase 3 is complete on `dev` but NOT deployed — staging/prod are still on
-Phase 1+2, and the `match-document-name`/`purge-documents` edge functions are undeployed too).
+**45–50 are on STAGING ONLY** (applied 2026-07-22, 50/50, advisors 0 ERROR, browser-QA'd — **prod is
+still on Phase 1+2**). The Phase 3 staging deploy also shipped `match-document-name` + `purge-documents`
+(new) and redeployed `notify-email` + `invoice-pdf`; staging config added the `APP_URL` secret (the
+auto-offer digest's edit link) and the `purge_documents_url` Vault secret (the retention cron reads
+GUC → Vault like the email trigger, so it stays a no-op until that exists — **prod still needs both**).
 
 **Wired to Supabase (real data + verified):** sign-in (role redirect) · **password reset** (**OTP-code flow**:
 `/forgot-password` is 2-step — email → `resetPasswordForEmail`, then a **6-digit code** + new password →
