@@ -16,8 +16,9 @@ batch in section D. #7 landed with the Phase 3 prequal → live-deal flow (migra
 by the client on 2026-07-22 and turned out to be a label restoration rather than a merge, so it needed
 no migration.
 
-The only thing left in this thread is operational, not code: **the test accounts the client created on
-the live site** — we need the exact list confirmed before deleting anything (section D).
+The test accounts the client created on the live site were removed on 2026-07-22 (section D) — including
+a stranded lender signup that explains why they could not reach the lender portal. Nothing in this
+thread is open.
 
 ## Legend
 
@@ -121,9 +122,21 @@ message.
 - [x] **"Recreational" checkbox → "Recreational Property"** — the property FLAG label
   (`PROPERTY_FLAG_TABLE.recreational_property`). This is the alignment flagged as an open question under
   #6 above; the client has now confirmed it.
-- [ ] **Test users the client created on the LIVE site** — they asked whether we can delete them. Needs
-  the exact accounts confirmed before anything is removed; deleting an auth user cascades (profile,
-  deals, offers) and cannot be undone.
+- [x] **Test users the client created on the LIVE site** — removed 2026-07-22 with the user's explicit
+  go-ahead. Three broker accounts (`bonniec@`, `bonniec+verico@`, `bonniec+dlc@dominionlending.ca`) with
+  one deal each (DEAL-2026-1/2/3), no offers, invoices or documents. ⚠️ `deals.broker_id → profiles` is
+  **NO ACTION**, so the deals had to go first or the delete would have failed.
+- [x] **A FOURTH, stranded account — and it is why the client could not test the lender portal.**
+  `bonniec+rmg@dominionlending.ca` existed in `auth.users` with **no `profiles` row**, so it was
+  invisible to any query joining the two (that is how the first pass missed it). Signup metadata said
+  **role = lender**, email never confirmed, never signed in, created **2026-07-18 — three days before
+  the #12 fix shipped**, i.e. while lenders were still being skipped past the email-confirmation screen.
+  Without a profile it has no role, so confirming the address later would not have helped. Deleted, so
+  the client can register that lender again and this time reach the code screen.
+  **Prod is now down to `admin@lendermatch.ca` and zero deals**, with the brokerage (10) and lender
+  institution (5) lookup tables untouched.
+  Lesson for the next audit: **count `auth.users` on its own before trusting a `profiles`-joined list** —
+  an auth row without a profile is both invisible and broken.
 
 ## Suggested order
 
