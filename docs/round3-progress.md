@@ -161,6 +161,13 @@ document-purge cron and the optional `APP_URL` secret need to go with it.
       Make Offer dialog shows the **special prequal fine print**. i18n EN/FR. Covered by `smoke-prequal`
       (27 checks); suite 22/22 green. ⚠️ The fine-print COPY is ours, not the client's — confirm the exact
       wording with them (`makeOffer.prequalFinePrint`).
+      **QA fix (2026-07-22):** the "Pre-Qualification" checkbox was sitting in the Property step's
+      characteristics grid (step 4) while the closing-date requirement it waives is on the **Deal** step
+      (step 2) — and `advanceTo` blocks Next until the current step is complete, so a broker could not
+      reach the checkbox without first typing a closing date, i.e. the prequal path was unreachable in the
+      normal flow. The checkbox now lives on the Deal step above the dates (with a hint), the closing date
+      drops its red `*` + inline error while it is checked, and the address error points at the Deal step.
+      Also badged prequals on the **Maturing** cards (New Deals already did).
 - [x] Scrolling lender logos on the login page + admin way to add more — migration 50 (`lender_logos`
       table + a PUBLIC `lender-logos` Storage bucket; ACTIVE rows are **anon-readable** because the login
       page is unauthenticated — same rationale as the published legal docs and the sign-up org dropdowns —

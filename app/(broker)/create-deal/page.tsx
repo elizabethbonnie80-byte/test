@@ -800,9 +800,31 @@ export default function CreateDealPage() {
                   </div>
                 </div>
 
+                {/* Round 3 Phase 3: a prequal has no property and no closing date yet, so this has to
+                    be decided HERE — it is what makes the closing date (below) and the property
+                    address (Property step) optional. */}
+                <div className="flex items-start gap-2 rounded-lg border border-border bg-muted/30 p-3">
+                  <Checkbox
+                    id="preQualification"
+                    checked={preQualification}
+                    onCheckedChange={(c) => setPreQualification(c as boolean)}
+                    className="mt-0.5"
+                  />
+                  <div className="space-y-0.5">
+                    <Label htmlFor="preQualification" className="text-sm font-normal cursor-pointer">
+                      {t("prequal")}
+                    </Label>
+                    <p className="text-xs text-muted-foreground">{t("prequalHint")}</p>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="closingDate">{t("closingDate")}<Req /></Label>
+                    <Label htmlFor="closingDate">
+                      {t("closingDate")}
+                      {/* Round 3 Phase 3: a prequal gets its closing date at "Move to Live Deal" */}
+                      {!preQualification && <Req />}
+                    </Label>
                     <div className="relative">
                       <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
@@ -810,10 +832,10 @@ export default function CreateDealPage() {
                         type="date"
                         value={closingDate}
                         onChange={(e) => setClosingDate(e.target.value)}
-                        className={`pl-10 bg-muted/50 ${errCls(invalid("deal", closingDate))}`}
+                        className={`pl-10 bg-muted/50 ${errCls(!preQualification && invalid("deal", closingDate))}`}
                       />
                     </div>
-                    <FieldError show={invalid("deal", closingDate)} />
+                    <FieldError show={!preQualification && invalid("deal", closingDate)} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="cofDate">{t("cofDate")}</Label>
@@ -1472,7 +1494,7 @@ export default function CreateDealPage() {
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                     {(
                       [
-                        ["preQualification", preQualification, setPreQualification, "prequal"],
+                        // "Pre-Qualification" lives on the Deal step — it gates the closing date there.
                         ["hobbyFarm", hobbyFarm, setHobbyFarm, "hobbyFarm"],
                         ["newConstruction", newConstruction, setNewConstruction, "newBuild"],
                         ["hasWell", hasWell, setHasWell, "wellWater"],

@@ -319,6 +319,12 @@ export default function MaturingDealsPage() {
                           COF
                         </span>
                       )}
+                      {/* Round 3 Phase 3: a prequal has no address/closing date yet (same badge as New Deals) */}
+                      {deal.prequal && (
+                        <span className="text-[10px] font-bold bg-sky-100 text-sky-800 px-1.5 py-0.5 rounded">
+                          {t('prequal')}
+                        </span>
+                      )}
                       <span className="font-bold text-foreground">{deal.dealNumber}</span>
                       <span className={`text-xs flex items-center gap-1 ${closingStyle(days)}`}>
                         {days <= 5 && <AlertTriangle className="h-3 w-3" />}

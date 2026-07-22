@@ -259,6 +259,7 @@
     "prequal": "PREQUAL"
   },
   "maturingDeals": {
+    "prequal": "PREQUAL",
     "title": "Maturing Deals",
     "subtitle": "Deals with no offers approaching their closing date — sorted by urgency. Row color indicates match with your saved filters.",
     "legendTitle": "Filter match legend — scored against your saved filters",
@@ -1289,8 +1290,9 @@
     "saveChanges": "Save Changes",
     "savingChanges": "Saving...",
     "dealUpdated": "Deal updated.",
-    "addressOrPrequal": "Add a property address, or check Prequal below.",
-    "addressPrequalHint": "Leave blank only for a prequal — you can add the address later with \"Move to Live Deal\"."
+    "addressOrPrequal": "Add a property address, or mark the deal as a Prequal on the Deal Information step.",
+    "addressPrequalHint": "Leave blank only for a prequal — you can add the address later with \"Move to Live Deal\".",
+    "prequalHint": "No property or closing date yet. Lenders can still bid; you add the address and closing date later with \"Move to Live Deal\"."
   },
   "admin": {
     "loading": "Loading…",

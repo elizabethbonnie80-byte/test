@@ -259,6 +259,7 @@
     "prequal": "PRÉQUAL"
   },
   "maturingDeals": {
+    "prequal": "PRÉQUAL",
     "title": "Dossiers à échéance",
     "subtitle": "Dossiers sans offre approchant de leur date de clôture — triés par urgence. La couleur de la ligne indique la correspondance avec vos filtres enregistrés.",
     "legendTitle": "Légende de correspondance — évaluée selon vos filtres enregistrés",
@@ -1289,8 +1290,9 @@
     "saveChanges": "Enregistrer les modifications",
     "savingChanges": "Enregistrement...",
     "dealUpdated": "Dossier mis à jour.",
-    "addressOrPrequal": "Ajoutez une adresse de propriété, ou cochez Préqualification ci-dessous.",
-    "addressPrequalHint": "Laissez vide uniquement pour une préqualification — vous pourrez ajouter l’adresse plus tard avec « Convertir en dossier réel »."
+    "addressOrPrequal": "Ajoutez une adresse de propriété, ou marquez le dossier comme Préqualification à l’étape Renseignements du dossier.",
+    "addressPrequalHint": "Laissez vide uniquement pour une préqualification — vous pourrez ajouter l’adresse plus tard avec « Convertir en dossier réel ».",
+    "prequalHint": "Aucune propriété ni date de clôture pour l’instant. Les prêteurs peuvent quand même soumettre une offre; vous ajouterez l’adresse et la date de clôture plus tard avec « Convertir en dossier réel »."
   },
   "admin": {
     "loading": "Chargement…",
