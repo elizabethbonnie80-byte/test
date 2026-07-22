@@ -2647,6 +2647,10 @@ export type Database = {
         | "modular_home"
         | "farm"
         | "recreational"
+        | "duplex_detached"
+        | "duplex_semi_detached"
+        | "apartment_low_rise"
+        | "apartment_high_rise"
       faq_category:
         | "getting_started"
         | "deals_and_offers"
@@ -2919,6 +2923,10 @@ export const Constants = {
         "modular_home",
         "farm",
         "recreational",
+        "duplex_detached",
+        "duplex_semi_detached",
+        "apartment_low_rise",
+        "apartment_high_rise",
       ],
       faq_category: [
         "getting_started",

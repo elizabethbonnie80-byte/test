@@ -89,8 +89,12 @@ const INCOME_TYPE: Record<Enums["income_type"], Bi> = {
   commission: ["Commission", "Commission"],
   self_employed_full_doc: ["Self-Employed (Full Doc)", "Travailleur autonome (doc. complète)"],
   self_employed_stated: ["Self-Employed (Stated)", "Travailleur autonome (revenu déclaré)"],
-  passive_income: ["Passive Income", "Revenu passif"],
-  passive_retired_income: ["Passive/Retired Income", "Revenu passif/de retraite"],
+  // Client 2026-07-22: keep BOTH, restoring the fuller Bubble wording that says what each one covers.
+  passive_income: ["Passive Income (dividends/interest etc.)", "Revenu passif (dividendes/intérêts, etc.)"],
+  passive_retired_income: [
+    "Passive retired income (CPP/OAS/RRIF/Pension etc.)",
+    "Revenu passif de retraite (RPC/SV/FERR/rente, etc.)",
+  ],
   ccb_under_15: ["CCB (under 15 years old)", "ACE (moins de 15 ans)"],
   rental_income: ["Rental Income", "Revenu locatif"],
   child_support_alimony: ["Child Support/Alimony", "Pension alimentaire"],
@@ -138,20 +142,32 @@ const LOCATION_TYPE: Record<Enums["location_type"], Bi> = {
   rural: ["Rural", "Rural"],
 }
 
+// Key order IS the dropdown order. The three RETIRED values sit at the end: they keep their labels so
+// a historical deal still renders, but RETIRED_DWELLING_TYPES removes them from the options (client
+// 2026-07-22 — "Hobby Farm"/"Recreational Property" were never dwelling types, they are the property
+// checkboxes below; "Condo Apartment" was dropped in favour of the two Apartment entries).
 const DWELLING_TYPE: Record<Enums["dwelling_type"], Bi> = {
   detached: ["Detached", "Isolée"],
   semi_detached: ["Semi-Detached", "Jumelée"],
   townhouse: ["Townhouse", "Maison en rangée"],
-  condo_apartment: ["Condo Apartment", "Appartement en copropriété"],
   condo_townhouse: ["Condo Townhouse", "Maison en rangée en copropriété"],
   duplex: ["Duplex", "Duplex"],
+  duplex_detached: ["Duplex - Detached", "Duplex – isolé"],
+  duplex_semi_detached: ["Duplex - Semi-Detached", "Duplex – jumelé"],
   triplex: ["Triplex", "Triplex"],
   fourplex: ["Fourplex", "Quadruplex"],
+  apartment_low_rise: ["Apartment Low Rise", "Appartement – faible hauteur"],
+  apartment_high_rise: ["Apartment High Rise", "Appartement – tour d'habitation"],
   mobile_home: ["Mobile Home", "Maison mobile"],
   modular_home: ["Modular Home", "Maison modulaire"],
+  // ── retired: labelled for historical rows, never offered ──
+  condo_apartment: ["Condo Apartment", "Appartement en copropriété"],
   farm: ["Hobby Farm", "Ferme d'agrément"],
   recreational: ["Recreational Property", "Propriété récréative"],
 }
+
+/** Dwelling types kept for historical rows but withdrawn from every picker (migration 51). */
+const RETIRED_DWELLING_TYPES = new Set<Enums["dwelling_type"]>(["condo_apartment", "farm", "recreational"])
 
 const DEAL_STATUS: Record<Enums["deal_status"], Bi> = {
   draft: ["Draft", "Brouillon"],
@@ -200,7 +216,7 @@ const DEAL_INFO_FLAG_TABLE: [DealCol, Bi][] = [
 const PROPERTY_FLAG_TABLE: [DealCol, Bi][] = [
   ["prequal", ["Prequal", "Préqualification"]],
   ["new_build", ["New Build", "Construction neuve"]],
-  ["recreational_property", ["Recreational", "Récréative"]],
+  ["recreational_property", ["Recreational Property", "Propriété récréative"]],
   ["hobby_farm", ["Hobby Farm", "Ferme d'agrément"]],
   ["well_water", ["Well Water", "Eau de puits"]],
   ["septic", ["Septic", "Fosse septique"]],
@@ -236,7 +252,7 @@ function build(locale: Locale) {
     DOWN_PAYMENT_SOURCE_OPTIONS: options(DOWN_PAYMENT_SOURCE, locale),
     PROVINCE_OPTIONS: options(PROVINCE, locale),
     LOCATION_TYPE_OPTIONS: options(LOCATION_TYPE, locale),
-    DWELLING_TYPE_OPTIONS: options(DWELLING_TYPE, locale),
+    DWELLING_TYPE_OPTIONS: options(DWELLING_TYPE, locale).filter((o) => !RETIRED_DWELLING_TYPES.has(o.value)),
     LABELS: {
       occupancy: looseLabels(OCCUPANCY, locale),
       purpose: looseLabels(TRANSACTION_PURPOSE, locale),

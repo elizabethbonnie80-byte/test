@@ -9,19 +9,15 @@ This is a post-Round-3 feedback batch (NOT part of the Round 3 quote). Track sta
 then QA → merge to `staging` → deploy → promote to prod, per the usual flow. Do **not** touch Phase 3 items
 (#7) — the other dev owns the prequal flow.
 
-## Status (2026-07-21)
+## Status (2026-07-22)
 
-**10 of 12 items are DONE and LIVE on both staging and prod** (`81b297b`; migration 44 applied to both).
-**#7 is now built too** — it landed with the Phase 3 prequal → live-deal flow (migration 48), so it is
-done on `dev` but **not yet deployed** (Phase 3 migrations 45–49 are local only). Only one item is still
-open:
+**All 12 items are DONE and LIVE on both staging and prod**, together with the 2026-07-22 follow-up
+batch in section D. #7 landed with the Phase 3 prequal → live-deal flow (migration 48); #5 was answered
+by the client on 2026-07-22 and turned out to be a label restoration rather than a merge, so it needed
+no migration.
 
-- **#5** — BLOCKED on the client. The question has been drafted and sent: which single label do the two
-  "Passive" income types collapse into? It also needs a data migration to move existing
-  `deal_income_types` rows off the retired value.
-
-The client was told the rest of the batch ships alongside Phase 3, and that they can now re-test on
-staging with the same admin account as production.
+The only thing left in this thread is operational, not code: **the test accounts the client created on
+the live site** — we need the exact list confirmed before deleting anything (section D).
 
 ## Legend
 
@@ -43,11 +39,11 @@ staging with the same admin account as production.
   "field required" error are gated on `networthProgram` (the section-complete rule already was). Also:
   `collectInput` now PERSISTS both values regardless of the Networth checkbox — previously it wrote `null`
   when Networth was unchecked, which would have discarded anything typed into the now-always-visible fields.
-- [blocked] **#5 — Merge the two "Passive" income types back into one.** Today `lib/enums.ts` has both
-  `passive_income` ("Passive Income") and `passive_retired_income` ("Passive/Retired Income"); the client
-  wants them un-separated ("what we had before"). Needs: (a) **client decision on the single canonical
-  label/value**, (b) a **migration** to backfill `deal_income_types` rows from the dropped value + saved
-  filters, then remove the duplicate from the UI options. **Data-model, medium — needs the label decision.**
+- [x] **#5 — The two "Passive" income types.** RESOLVED by the client 2026-07-22, and it was **not** a
+  merge: *"I meant make them the same as we had previously on bubble. They were 'Passive Income
+  (dividends/interest etc.)' and 'Passive retired income (CPP/OAS/RRIF/Pension etc.)'"* — i.e. keep both
+  types, restore the fuller Bubble wording that spells out what each covers. **Label-only change in
+  `lib/enums.ts` (EN+FR); no migration and no data change**, since both enum values stay.
 - [x] **#6 — Renamed dwelling-type options → "Hobby Farm" / "Recreational Property".** `lib/enums.ts`
   `dwelling_type.farm` ("Ferme d'agrément") and `dwelling_type.recreational` ("Propriété récréative").
   NOTE: these are the DWELLING dropdown options, distinct from the property FLAGS
@@ -105,6 +101,29 @@ message.
   lender → pending-approval, broker → deal-room. (Email confirmation stays ON in the Supabase dashboard.)
 
 ---
+
+---
+
+## D) Follow-up batch — 2026-07-22 (same client email thread)
+
+- [x] **Passive income** — see #5 above (labels restored, both types kept).
+- [x] **Type of Dwelling reworked** (migration 51 + `lib/enums.ts`). Client: *"we didn't used to have
+  Recreational Property and Hobby Farm in the dwelling type… Could you please remove those"*, add
+  **Duplex - Detached**, **Duplex - Semi-Detached**, **Apartment Low Rise**, **Apartment High Rise**, and
+  *"remove Condo Apartment from the list as well"*.
+  ⚠️ **The three removed values are NOT dropped from the enum.** Postgres cannot remove a value in place
+  (it means recreating the type and every dependent column/signature) and a historical deal could still
+  carry one, so `condo_apartment`/`farm`/`recreational` stay in the type, keep their labels for display,
+  and are filtered out of every picker via `RETIRED_DWELLING_TYPES`. Same "retire, never delete"
+  reasoning as the brokerages/lender institutions. Verified before shipping: **no deal and no saved
+  filter on prod used any of the three**. `dwellingToPropertyType` also learned the new values
+  (apartments → Condo, duplex variants → Multi-Family).
+- [x] **"Recreational" checkbox → "Recreational Property"** — the property FLAG label
+  (`PROPERTY_FLAG_TABLE.recreational_property`). This is the alignment flagged as an open question under
+  #6 above; the client has now confirmed it.
+- [ ] **Test users the client created on the LIVE site** — they asked whether we can delete them. Needs
+  the exact accounts confirmed before anything is removed; deleting an auth user cascades (profile,
+  deals, offers) and cannot be undone.
 
 ## Suggested order
 

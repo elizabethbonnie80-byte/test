@@ -19,8 +19,8 @@ confirmed the Phase 2 UI end-to-end: broker Deal Room Edit/Delete matrix (Submit
 Received→Delete-only, Confirmed→neither), one-step accept dialog (identity reveal + invoice immediately, no
 Confirm Lender), Create Deal Round 3 fields; lender Make Offer bps preview + Lender Fee % + product prefill,
 Filters sidepanel new fields, switched→Declined (no "Switched" status), and the Edit Offer prefilled dialog.
-⚠️ Remaining manual step: the "Confirm signup" Auth email template (dashboard, not git) still says "Loan Link"
-on both envs.
+The "Confirm signup" Auth email template lives in the Supabase dashboard, not in git; it was updated to
+LenderMatch™ on both envs on 2026-07-22, closing the last manual rebrand step.
 
 Tracks execution of `docs/LenderMatch_Round3_Change_Request.pdf` (Rev.3, firm 64 h, approved by the
 client in writing on 2026-07-13). Update the checkboxes as items land; keep `CLAUDE.md`'s "Wired /

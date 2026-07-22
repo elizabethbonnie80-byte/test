@@ -296,12 +296,16 @@ const OFFER_STATUS_LABEL: Record<Enums["offer_status"], SubmittedOfferItem["stat
 
 function dwellingToPropertyType(d: Enums["dwelling_type"] | null): string {
   switch (d) {
-    case "condo_apartment":
+    case "condo_apartment": // retired, still possible on historical deals
+    case "apartment_low_rise":
+    case "apartment_high_rise":
       return "Condo"
     case "townhouse":
     case "condo_townhouse":
       return "Townhouse"
     case "duplex":
+    case "duplex_detached":
+    case "duplex_semi_detached":
     case "triplex":
     case "fourplex":
       return "Multi-Family"

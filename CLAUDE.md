@@ -535,8 +535,9 @@ read it before touching hosted infra. Current state:
   migrations 36–43 applied [43/43, advisors 0 ERROR], `contact-us` + `invoice-pdf` deployed, `main` @ `7058aa5`
   → Vercel Production, renders "LenderMatch™" + logo). **staging** live + seeded at **`staging.lendermatch.ca`**
   (`/sign-in` 200; demo accounts `Test1234!`), same `7058aa5`. main/staging/dev are all in sync at `7058aa5`.
-  ⚠️ **Still manual (dashboard, not git): the prod + staging "Confirm signup" Auth email templates still say
-  "Loan Link"** — update them to "LenderMatch™" in each Supabase dashboard (Auth → Email Templates). Old dev
+  The Auth email templates live in each Supabase dashboard (Auth → Email Templates), **not in git** — so a
+  rebrand has to be applied there by hand. The "Confirm signup" template was updated to LenderMatch™ on both
+  envs (2026-07-22); keep that step in mind for any future brand/copy change. Old dev
   deployment (Supabase `zyxfsewiejvtnhftnasu` + `loan-link-rho.vercel.app` + GitLab) is pre-migration and retired.
 
 The gotchas below still apply (and are folded into the runbook):
