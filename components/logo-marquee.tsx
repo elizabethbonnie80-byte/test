@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { listActiveLogos, type LenderLogo } from '@/lib/queries/logos'
 import { useT } from '@/components/i18n-provider'
@@ -36,18 +36,29 @@ export function LogoMarquee() {
   }, [supabase])
 
   // Measure rather than guess: logo widths vary (a square icon vs a wide wordmark), so the number of
-  // logos alone doesn't say whether the list overflows. Re-measures on resize and as images load.
-  useEffect(() => {
+  // logos alone doesn't say whether the list overflows.
+  const measure = useCallback(() => {
     const strip = stripRef.current
     const pass = passRef.current
-    if (!strip || !pass || logos.length === 0) return
-    const measure = () => setScrolls(pass.scrollWidth > strip.clientWidth)
+    if (!strip || !pass) return
+    setScrolls(pass.scrollWidth > strip.clientWidth)
+  }, [])
+
+  // The first measurement is a plain synchronous call, NOT a ResizeObserver callback: the images may
+  // still be loading (zero width) at that point, so each one also re-measures on load. The observer
+  // then only has to catch later container changes. Belt and braces on purpose — RO callbacks are not
+  // delivered at all while a tab is hidden.
+  useEffect(() => {
+    if (logos.length === 0) return
     measure()
+    const strip = stripRef.current
+    const pass = passRef.current
+    if (!strip || !pass) return
     const observer = new ResizeObserver(measure)
     observer.observe(strip)
     observer.observe(pass)
     return () => observer.disconnect()
-  }, [logos])
+  }, [logos, measure])
 
   if (logos.length === 0) return null
 
@@ -69,6 +80,7 @@ export function LogoMarquee() {
           key={logo.id}
           src={logo.url}
           alt={hidden ? '' : logo.name}
+          onLoad={measure}
           className="h-10 w-auto shrink-0 object-contain opacity-70 grayscale hover:opacity-100 hover:grayscale-0 transition"
         />
       ))}
