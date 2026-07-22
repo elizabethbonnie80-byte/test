@@ -38,7 +38,13 @@ const OFFER_STATUS_KEY: Record<DealOffer['status'], string> = {
 
 function fmtDate(dateString: string | null, locale: string) {
   if (!dateString) return '—'
-  return new Date(dateString).toLocaleDateString(locale, { year: 'numeric', month: 'short', day: 'numeric' })
+  // A date-only column ("2026-10-15") parses as UTC midnight, which renders as the PREVIOUS day in
+  // any negative-offset timezone — every Canadian one. Pin those to local noon (same trick as
+  // lender/invoices' fmtDay); real timestamps already carry an offset and are left alone.
+  const d = /^\d{4}-\d{2}-\d{2}$/.test(dateString)
+    ? new Date(`${dateString}T12:00:00`)
+    : new Date(dateString)
+  return d.toLocaleDateString(locale, { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
 export default function DealDetailPage() {
