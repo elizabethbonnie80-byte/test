@@ -297,13 +297,20 @@ export function MakeOfferDialog({
               const product = form.mortgageProduct as MortgageProduct
               const platformBps = platformBpsFor(product)
               const netBps = Math.max(0, grossBps - platformBps)
+              // Two label/amount rows rather than three spans on one line: the fee label is long
+              // enough to wrap in the dialog's width, which used to squeeze the amounts together.
               return (
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">
-                    {t("platformDeduction", { brand: BRAND, term: PRODUCT_TERM_YEARS[product] })}
-                  </span>
-                  <span className="text-destructive">-{platformBps} bps</span>
-                  <span className="font-semibold text-foreground">{t("finalCommissionAmount")}: {netBps} bps</span>
+                <div className="space-y-1.5 text-sm">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="text-muted-foreground">
+                      {t("platformDeduction", { brand: BRAND, term: PRODUCT_TERM_YEARS[product] })}
+                    </span>
+                    <span className="text-destructive whitespace-nowrap">-{platformBps} bps</span>
+                  </div>
+                  <div className="flex items-baseline justify-between gap-3 border-t border-border pt-1.5">
+                    <span className="font-semibold text-foreground">{t("finalCommissionAmount")}</span>
+                    <span className="font-semibold text-foreground whitespace-nowrap">{netBps} bps</span>
+                  </div>
                 </div>
               )
             })()}

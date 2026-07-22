@@ -318,15 +318,22 @@ export function AutoOfferManager() {
 
               {/* Same platform-bps deduction preview the Make Offer dialog shows. */}
               {editing.commissionBps > 0 && (
-                <div className="rounded-md border border-border bg-muted/30 p-3 space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">
-                      {t('platformDeduction', { brand: BRAND, term: PRODUCT_TERM_YEARS[editing.mortgageProduct] })}
-                    </span>
-                    <span className="text-destructive">-{platformBpsFor(editing.mortgageProduct)} bps</span>
-                    <span className="font-semibold text-foreground">
-                      {t('finalCommissionAmount')}: {Math.max(0, editing.commissionBps - platformBpsFor(editing.mortgageProduct))} bps
-                    </span>
+                <div className="rounded-md border border-border bg-muted/30 p-3">
+                  <div className="space-y-1.5 text-sm">
+                    <div className="flex items-baseline justify-between gap-3">
+                      <span className="text-muted-foreground">
+                        {t('platformDeduction', { brand: BRAND, term: PRODUCT_TERM_YEARS[editing.mortgageProduct] })}
+                      </span>
+                      <span className="text-destructive whitespace-nowrap">
+                        -{platformBpsFor(editing.mortgageProduct)} bps
+                      </span>
+                    </div>
+                    <div className="flex items-baseline justify-between gap-3 border-t border-border pt-1.5">
+                      <span className="font-semibold text-foreground">{t('finalCommissionAmount')}</span>
+                      <span className="font-semibold text-foreground whitespace-nowrap">
+                        {Math.max(0, editing.commissionBps - platformBpsFor(editing.mortgageProduct))} bps
+                      </span>
+                    </div>
                   </div>
                 </div>
               )}
